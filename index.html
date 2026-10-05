@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nhật ký học tập</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#2f6f5e"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+<h1>📖 Nhật ký học tập</h1>
+<div class="card" id="hab" style="margin-bottom:12px"></div>
+<div class="card" id="timer"></div>
+<h2>Tổng quan</h2>
+<div class="grid4" id="stats"></div>
+<h2>Cấp độ & mục tiêu</h2><div class="card" id="lvl"></div>
+<h2>Theo môn</h2>
+<div class="card" id="subj"></div>
+<h2>Loại hoạt động & bài tập</h2><div class="card" id="act"></div>
+<h2>7 ngày gần đây</h2>
+<div class="card" id="week"></div>
+<h2>Lịch học</h2><div class="card" id="cal"></div>
+<h2 id="achT">Thành tích</h2>
+<div class="ach" id="ach"></div>
+<h2>Cài đặt & dữ liệu</h2><div class="card" id="set"></div>
+<h2>Lịch sử</h2><button class="btn g" style="margin-bottom:10px" onclick="openEd(0)">＋ Thêm buổi học thủ công</button><div id="ed"></div>
+<div class="card" id="hist"></div>
+</main>
+<div id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
