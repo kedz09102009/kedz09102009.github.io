@@ -6,7 +6,7 @@ const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.sub
 // S chứa mọi thứ: sessions = các buổi học đã lưu, active = buổi đang học,
 // ach = thành tích đã mở khoá, goalD/goalW = mục tiêu ngày/tuần (phút).
 // S được lưu vào localStorage (bộ nhớ của trình duyệt) bằng hàm save().
-let S={sessions:[],active:null,sel:'toan',ach:{},del:{},su:0,goalD:120,goalW:600,pomo:false,rem:'',u:0,ver:1,rev:0,minD:15,goalDays:5,rest:1,subjects:DEF_SUBJ.map(x=>({...x}))},fin=false,focus=0,topic='',typ='',vN='',vC='',delId=0,hAll=false,EF=null,cY=new Date().getFullYear(),cM=new Date().getMonth();
+let S={sessions:[],active:null,sel:'toan',ach:{},del:{},su:0,goalD:120,goalW:600,pomo:false,rem:'',u:0,ver:1,rev:0,minD:15,goalDays:5,rest:1,room:'',name:'',subjects:DEF_SUBJ.map(x=>({...x}))},fin=false,focus=0,topic='',typ='',vN='',vC='',delId=0,hAll=false,EF=null,cY=new Date().getFullYear(),cM=new Date().getMonth();
 const VER=1; // phiên bản định dạng dữ liệu. Sau này nếu đổi cách lưu, tăng số này và xử lý trong migrate()
 function migrate(o){if(!o||typeof o!='object')return{};
   o.sessions=(Array.isArray(o.sessions)?o.sessions:[]).filter(x=>x&&typeof x.ts=='number'&&typeof x.dur=='number'&&typeof x.subj=='string'); // bỏ bản ghi hỏng
@@ -24,9 +24,9 @@ function subAdd(){const n=$('ns').value.trim();if(!n)return;const P=['#2f8f6e','
 ensureSubjects();
 // Lưu S vào localStorage. Sau mỗi thay đổi dữ liệu: gọi save() rồi render().
 // Hai nơi lưu: localStorage (bản nhớ tạm trong trình duyệt) và, nếu đang chạy server.py, file data.json trên máy.
-let serverMode=false,disk='local',st,ro=false,lastW=0;
+let serverMode=false,disk='local',st,ro=false,lastW=0,user=null,peers=null,cstat='',unM=null,unR=null,cpt,ppt,cloudHooked=false,cloudSynced=false;
 function cache(){try{localStorage.setItem('studylog',JSON.stringify(S))}catch(e){}}
-function save(){if(ro)return;cache();if(serverMode){clearTimeout(st);st=setTimeout(toServer,800)}}
+function save(){if(ro)return;cache();cPush();pubSummary();if(serverMode){clearTimeout(st);st=setTimeout(toServer,800)}}
 // Ghi lên server kèm số phiên bản (rev). Nếu data.json đã bị nơi khác sửa (409): gộp dữ liệu rồi ghi lại.
 function toServer(n=0){if(ro||n>3)return;
   fetch('/api/data',{method:'POST',headers:{'Content-Type':'application/json','X-Base-Rev':String(S.rev||0)},body:JSON.stringify(S)})
@@ -98,7 +98,7 @@ function ask(y){const a=S.active;a.ask=false;if(y)a.nx=el()+10800;else if(a.run)
 function stats(){
   const o={q:{},xp:0,pn:0,pc:0,ty:{},tot:0,n:S.sessions.length,long:0,by:{},f5:0,early:0,days:{},bal:0};
   const rec=new Set();
-  S.sessions.forEach(x=>{o.tot+=x.dur;{const m=Math.floor(x.dur/60),cap=Math.max(10,m*2),n=Math.min(x.n||0,cap),c=Math.min(x.c||0,n);o.xp+=Math.round((m+2*n+c)*(x.man?.5:1))} // buổi nhập tay chỉ được nửa XP; số bài tính XP có giới hạn theo thời lượng
+  S.sessions.forEach(x=>{o.tot+=x.dur;o.xp+=sxp(x); // buổi nhập tay chỉ được nửa XP; số bài tính XP có giới hạn theo thời lượng
     o.pn+=x.n||0;o.pc+=x.c||0;(o.q[x.subj]=o.q[x.subj]||[0,0]);o.q[x.subj][0]+=x.n||0;o.q[x.subj][1]+=x.c||0;if(x.type)o.ty[x.type]=(o.ty[x.type]||0)+x.dur;o.by[x.subj]=(o.by[x.subj]||0)+x.dur;if(!x.man)o.long=Math.max(o.long,x.dur);if(x.focus==5)o.f5++;
     if(!x.man&&new Date(x.st||x.ts).getHours()<7)o.early++;spans(x).forEach(([k,sec])=>{o.days[k]=(o.days[k]||0)+sec});
     if(Date.now()-x.ts<6048e5&&x.subj!='khac')rec.add(x.subj)});
@@ -172,6 +172,7 @@ function draw(){if(!SUBJ[S.sel])S.sel=vis('')[0];
   for(let d=1;d<=nd;d++){const v=s.days[cY+'-'+pad(cM+1)+'-'+pad(d)]||0,r=v/(S.goalD*60);mt+=v;if(v)md++;cells+=`<b class="cd l${!v?0:r<.25?1:r<.5?2:r<1?3:4}" title="${hm(v)}">${d}</b>`}
   $('cal').innerHTML=`<div class="in" style="justify-content:space-between"><button class="x" onclick="mv(-1)">◀</button><b>Tháng ${cM+1}/${cY}</b><button class="x" onclick="mv(1)">▶</button></div><div class="cal">${cells}</div><small class="s" style="margin-top:8px">${md} ngày có học · ${hm(mt)} · màu càng đậm càng gần mục tiêu ngày</small>`;
   $('ed').innerHTML=EF?`<div class="card" style="margin-bottom:10px"><b>${EF.id?'Sửa buổi học':'Thêm buổi học'}</b><div class="chips" style="margin:8px 0">${vis(EF.subj).map(k=>`<button class="chip t ${EF.subj==k?'on':''}" onclick="EF.subj='${k}';render()">${SUBJ[k].n}</button>`).join('')}</div><div class="in">Ngày <input type="date" value="${EF.date}" oninput="EF.date=this.value"> Giờ bắt đầu <input type="time" value="${EF.time}" oninput="EF.time=this.value"> <input type="number" min="1" value="${EF.min}" oninput="EF.min=+this.value"> phút</div><input type="text" placeholder="Nội dung đã học" value="${esc(EF.topic)}" oninput="EF.topic=this.value"><div style="text-align:center">${['Lý thuyết','Bài tập','Ôn lại','Thực hành','Nghe/nói'].map(x=>`<button class="chip t ${EF.type==x?'on':''}" onclick="EF.type=EF.type=='${x}'?'':'${x}';render()">${x}</button>`).join('')}</div><div class="in" style="justify-content:center">Bài làm <input type="number" min="0" value="${EF.n}" oninput="EF.n=+this.value"> Bài đúng <input type="number" min="0" value="${EF.c}" oninput="EF.c=+this.value"></div><div class="stars" style="text-align:center">${[1,2,3,4,5].map(n=>`<button class="${n<=EF.focus?'on':''}" onclick="EF.focus=EF.focus==${n}?0:${n};render()">★</button>`).join('')}</div><div class="row" style="margin-top:8px"><button class="btn g" onclick="EF=null;render()">Huỷ</button><button class="btn" onclick="saveEd()">Lưu</button></div></div>`:'';
+  $('race').innerHTML=raceUI(s);cs();
   const mx=Math.max(1,...Object.values(s.by));
   $('subj').innerHTML=Object.keys(SUBJ).filter(k=>!SUBJ[k].hid||s.by[k]).map(k=>`<div class="sub"><span>${SUBJ[k].n}</span><span>${hm(s.by[k]||0)}</span></div><div class="bar"><i style="width:${(s.by[k]||0)/mx*100}%;background:${SUBJ[k].c}"></i></div>`).join('');
   const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-i);days.push(d)}
@@ -207,7 +208,7 @@ function merge(r){mergeCore(r);ensureSubjects()}
 function mergeCore(r){const del=Object.assign({},r.del,S.del),m={};
   [...(r.sessions||[]),...S.sessions].forEach(x=>{if(del[x.id])return;const y=m[x.id];if(!y||(x.m||0)>(y.m||0))m[x.id]=x});
   S.sessions=Object.values(m);S.del=del;S.ach=Object.assign({},r.ach,S.ach);
-  if((r.su||0)>(S.su||0)){S.goalD=r.goalD;S.goalW=r.goalW;S.pomo=r.pomo;S.rem=r.rem;S.minD=r.minD||15;S.goalDays=r.goalDays||5;S.rest=r.rest==null?1:r.rest;if(Array.isArray(r.subjects)&&r.subjects.length)S.subjects=r.subjects;S.su=r.su}}
+  if((r.su||0)>(S.su||0)){S.goalD=r.goalD;S.goalW=r.goalW;S.pomo=r.pomo;S.rem=r.rem;S.minD=r.minD||15;S.goalDays=r.goalDays||5;S.room=r.room||'';S.name=r.name||'';S.rest=r.rest==null?1:r.rest;if(Array.isArray(r.subjects)&&r.subjects.length)S.subjects=r.subjects;S.su=r.su}}
 function cfg(k,v){S[k]=v;S.su=Date.now();save();render()}
 function cp(v){if(v)askNotif();cfg('pomo',v)}
 function mv(d){cM+=d;if(cM<0){cM=11;cY--}if(cM>11){cM=0;cY++}render()}
@@ -243,6 +244,48 @@ function tick(){if(ro)return;wake();const a=S.active;
   if(S.rem){const d=new Date(),k=dk(d);
     if(pad(d.getHours())+':'+pad(d.getMinutes())>=S.rem&&S.remd!==k){S.remd=k;save();
       if(!a&&!S.sessions.some(x=>dk(x.ts)==k)){ping('⏰ Đến giờ học rồi — hôm nay bạn chưa học buổi nào!');}}}}
+// ===== 8. ĐỒNG BỘ ĐÁM MÂY + CHẠY ĐUA =====
+// Cần cấu hình Firebase (xem HUONG-DAN-DONG-BO.md). Chưa cấu hình thì phần này không làm gì và phần mềm vẫn chạy bình thường.
+// cloud.js cung cấp đối tượng window.cloud; ở đây chỉ dùng các hàm: onAuth, signIn, signOut, watchMine, setMine, setMember, delMember, watchRoom.
+const sig=o=>(o.sessions||[]).map(x=>x.id+':'+(x.m||0)).sort().join()+'|'+Object.keys(o.del||{}).sort().join()+'|'+Object.keys(o.ach||{}).sort().join()+'|'+(o.su||0);
+const mon=()=>{const w=new Date();w.setHours(0,0,0,0);w.setDate(w.getDate()-((w.getDay()+6)%7));return w};
+// XP của một buổi học (dùng chung cho tổng XP và XP tuần)
+function sxp(x){const m=Math.floor(x.dur/60),cap=Math.max(10,m*2),n=Math.min(x.n||0,cap),c=Math.min(x.c||0,n);return Math.round((m+2*n+c)*(x.man?.5:1))}
+// XP tuần = XP các buổi học trong tuần (tối đa 300 mỗi ngày) + 30 XP cho mỗi ngày học đủ số phút tối thiểu
+function weekMe(s){const w0=mon(),per={};let mins=0;
+  S.sessions.forEach(x=>{if(x.ts>=w0.getTime()){const k=dk(x.ts);per[k]=(per[k]||0)+sxp(x);mins+=x.dur/60}});
+  let xp=0,days=0;Object.keys(per).forEach(k=>{xp+=Math.min(per[k],300)});
+  for(let i=0;i<7;i++){const d=new Date(w0);d.setDate(d.getDate()+i);if((s.days[dk(d)]||0)>=(S.minD||15)*60)days++}
+  return{xpWeek:xp+30*days,daysWeek:days,minWeek:Math.round(mins)}}
+// Chỉ những số liệu tổng hợp này được gửi cho bạn bè (không có môn học, nội dung, ghi chú)
+function summary(){const s=stats();return Object.assign({name:(S.name||'Bạn').slice(0,30),streak:s.cur,xp:s.xp,level:Math.floor(Math.sqrt(s.xp/50))+1,week:dk(mon()),t:Date.now()},weekMe(s))}
+const pk=()=>JSON.stringify({sessions:S.sessions,ach:S.ach,del:S.del,goalD:S.goalD,goalW:S.goalW,pomo:S.pomo,rem:S.rem,minD:S.minD,goalDays:S.goalDays,rest:S.rest,subjects:S.subjects,room:S.room,name:S.name,su:S.su||0,ver:S.ver});
+// Chỉ đẩy dữ liệu lên sau khi đã nhận bản trên mạng lần đầu (cloudSynced), để máy mới không ghi đè dữ liệu cũ trên mạng
+function cPush(){if(!user||ro||!cloudSynced)return;clearTimeout(cpt);cpt=setTimeout(()=>cloud.setMine({j:pk(),u:Date.now()}).then(()=>{cstat='ok';cs()}).catch(()=>{cstat='err';cs()}),1500)}
+function pubSummary(){if(!user||ro||!S.room)return;clearTimeout(ppt);ppt=setTimeout(()=>cloud.setMember(S.room,summary()).catch(()=>{}),3000)}
+function cAdopt(d){if(ro)return;let o;try{o=JSON.parse(d.j)}catch(e){return}const b=sig(S),r0=S.room;merge(migrate(o));
+  if(sig(S)!==b){cache();render()}if(S.room!==r0)startRoom();if(sig(S)!==sig(o))cPush()}
+function cs(){const e=$('cs');if(e)e.textContent={ok:'✓ Đã đồng bộ',err:'⚠ Lỗi đồng bộ — dữ liệu vẫn lưu trên máy này'}[cstat]||''}
+function startRoom(){if(unR){unR();unR=null}peers=null;if(user&&S.room){pubSummary();unR=cloud.watchRoom(S.room,l=>{peers=l;render()})}}
+function cloudInit(){if(!window.cloud||!window.cloud.ready||cloudHooked)return;cloudHooked=true;
+  cloud.onAuth(u=>{user=u;cloudSynced=false;if(unM){unM();unM=null}
+    if(u){if(!S.name&&u.displayName){S.name=u.displayName;S.su=Date.now();cache()}
+      unM=cloud.watchMine(d=>{cloudSynced=true;if(d)cAdopt(d);else cPush();cstat='ok';cs()});startRoom()}
+    else{if(unR){unR();unR=null}peers=null}render()})}
+function newRoom(){const a=new Uint8Array(8);crypto.getRandomValues(a);joinRoom([...a].map(b=>'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[b%31]).join(''))}
+function joinRoom(c){c=(c||$('rc').value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length<6){toast('Mã phòng cần ít nhất 6 ký tự');return}S.room=c;S.su=Date.now();save();startRoom();render()}
+function leaveRoom(){const r=S.room;S.room='';S.su=Date.now();save();if(r&&user)cloud.delMember(r).catch(()=>{});startRoom();render()}
+function setName(v){S.name=v.trim().slice(0,30);S.su=Date.now();save();render()}
+function raceUI(s){
+  if(!window.cloud||!window.cloud.ready)return'<div class="empty">Chưa bật đồng bộ. Làm theo HUONG-DAN-DONG-BO.md để bật (cần cấu hình Firebase).</div>';
+  if(!user)return'<div class="row"><button class="btn" onclick="cloud.signIn().catch(()=>toast(\'Đăng nhập chưa thành công\'))">Đăng nhập Google để đồng bộ và chạy đua</button></div>';
+  let h=`<div class="in"><span>👤 Tên hiển thị</span><input type="text" style="flex:1;margin:0" value="${esc(S.name)}" onchange="setName(this.value)"><button class="x" onclick="cloud.signOut()">Đăng xuất</button></div><small class="s" id="cs"></small>`;
+  if(!S.room)return h+'<div class="row" style="margin-top:10px"><button class="btn" onclick="newRoom()">＋ Tạo phòng mới</button></div><div class="in" style="justify-content:center"><input type="text" id="rc" style="width:140px;margin:0" placeholder="Mã phòng"><button class="btn g" onclick="joinRoom()">Tham gia</button></div>';
+  const wk=dk(mon()),L=(peers||[]).map(p=>Object.assign({},p,{x:p.week==wk?p.xpWeek:0,d:p.week==wk?p.daysWeek:0})).sort((a,b)=>b.x-a.x),mx=Math.max(1,...L.map(p=>p.x));
+  h+=`<div class="sub" style="margin-top:12px"><span>🏁 Phòng <b>${esc(S.room)}</b></span><button class="x" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(S.room)}').then(()=>toast('Đã sao chép mã phòng'))">Sao chép mã</button></div>`;
+  h+=L.length?L.map((p,i)=>`<div class="sub"><span>${i+1}. ${esc(p.name||'?')}${p.id==user.uid?' (bạn)':''} · Cấp ${p.level||1}</span><span>${p.x} XP · ${p.d}/7 ngày · 🔥${p.streak||0}</span></div><div class="bar"><i style="width:${p.x/mx*100}%;background:${p.id==user.uid?'var(--ac)':'var(--ly)'}"></i></div>`).join(''):'<div class="empty">Đang tải bảng xếp hạng…</div>';
+  return h+'<small class="s" style="margin-top:8px">XP tuần = XP các buổi học trong tuần (tối đa 300 mỗi ngày) + 30 XP cho mỗi ngày học đủ số phút tối thiểu. Bảng tính lại từ thứ Hai.</small><div class="row" style="justify-content:flex-start;margin-top:8px"><button class="x" onclick="leaveRoom()">Rời phòng</button></div>'}
+window.addEventListener('cloudready',cloudInit);cloudInit();
 setInterval(tick,1000);
 // Chỉ cho MỘT tab được ghi dữ liệu (tránh hai tab ghi đè lẫn nhau). Tab đến sau chỉ hiện thông báo.
 window.addEventListener('pagehide',()=>{if(!ro)cache()});
