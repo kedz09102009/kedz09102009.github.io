@@ -1,5 +1,5 @@
 window.FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAweYQ8ysi8OGLEFAHU9mPJ5MO4J55yuOU",
+  apiKey: "AIzaSyA6u8mgJ5AVfYsGGw317cpPeXhGLl8Z6oI",
   authDomain: "kietphan-7da93.firebaseapp.com",
   projectId: "kietphan-7da93",
   storageBucket: "kietphan-7da93.firebasestorage.app",
