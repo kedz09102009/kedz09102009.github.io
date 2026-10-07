@@ -304,3 +304,7 @@ function boot(){try{if(navigator.storage&&navigator.storage.persist)navigator.st
   fetch('/api/data').then(r=>{if(!r.ok)throw 0;return r.json()}).then(o=>{
     if((o.ver||1)>VER){disk='err';stat();toast('data.json do phiên bản mới hơn tạo ra — không ghi đè');return}
     serverMode=true;merge(migrate(o));S.rev=o.rev||0;cache();toServer();render()}).catch(()=>{})}
+window.newRoom = newRoom;
+window.joinRoom = joinRoom;
+window.leaveRoom = leaveRoom;
+window.setName = setName;
