@@ -142,3 +142,26 @@ small.s,.a small,.h small,.empty,.week div.c{color:var(--mut)}small.s{font-size:
 @keyframes ff{from{opacity:.15;transform:translate3d(0,0,0)}to{opacity:.95;transform:translate3d(10px,-14px,0)}}
 .still #bg::before,.still #bg::after{animation:none}
 @media (prefers-reduced-motion:reduce){#bg::before,#bg::after,main{animation:none}}
+
+/* ===== Nền động + khung đẹp hơn (v6) ===== */
+#bg{--ffc:#e0a020;--ffg:rgba(224,160,32,.35);--tree:#cfe3d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #bg{--ffc:#fff3b0;--ffg:rgba(255,214,90,.65);--tree:#050d0b}}
+:root[data-theme="dark"] #bg{--ffc:#fff3b0;--ffg:rgba(255,214,90,.65);--tree:#050d0b}
+#bg::before,#bg::after{display:none!important}
+#bg .blob{opacity:.8}
+.b1{animation-duration:20s}.b2{animation-duration:26s}.b3{animation-duration:23s}
+.mist{position:absolute;top:-10%;bottom:-10%;left:-60%;width:220%;background:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--ac) 20%,transparent) 40%,transparent 50%,transparent 60%,color-mix(in srgb,var(--ly) 12%,transparent) 70%,transparent 80%);animation:mist 28s ease-in-out infinite alternate;will-change:transform}
+@keyframes mist{to{transform:translateX(30%)}}
+.trees{position:absolute;left:-2%;bottom:0;width:104%;height:26vh;fill:var(--tree);opacity:.92;transform-origin:50% 100%;animation:sway 14s ease-in-out infinite alternate}
+@keyframes sway{from{transform:translateX(-6px) skewX(-.6deg)}to{transform:translateX(6px) skewX(.6deg)}}
+#bg .ff{position:absolute;left:var(--x);top:var(--y);width:var(--s);height:var(--s);border-radius:50%;background:var(--ffc);box-shadow:0 0 calc(var(--s)*3) calc(var(--s)*.8) var(--ffg);animation:drift var(--d) ease-in-out infinite alternate,blink var(--w) ease-in-out infinite alternate;will-change:transform,opacity}
+@keyframes drift{to{transform:translate3d(var(--dx),var(--dy),0)}}
+@keyframes blink{from{opacity:.1}to{opacity:1}}
+.still .ff{display:none}.still .mist,.still .trees,.still .blob{animation:none}
+@media (max-width:600px){#bg .ff:nth-child(n+14){display:none}}
+@media (prefers-reduced-motion:reduce){#bg .ff,.mist,.trees{animation:none}}
+.card{position:relative;border-color:color-mix(in srgb,var(--tx) 7%,transparent);background:linear-gradient(150deg,color-mix(in srgb,var(--card) 86%,transparent),color-mix(in srgb,var(--card) 62%,transparent)),radial-gradient(120% 90% at 0 0,color-mix(in srgb,var(--g,var(--ac)) 18%,transparent),transparent 58%);-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 14%,transparent),0 14px 34px -16px rgba(0,0,0,.45)}
+.card::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(145deg,color-mix(in srgb,var(--g,var(--ac)) 60%,transparent),transparent 38%,transparent 70%,color-mix(in srgb,var(--ly) 30%,transparent));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+#hab,#timer{--g:var(--ac)}#week,#subj,#act,#cal{--g:var(--toan)}#lvl,#goals{--g:var(--ly)}#race{--g:#b58cff}#set,#hist{--g:var(--ac2)}
+.stat{background:linear-gradient(180deg,color-mix(in srgb,var(--ac) 16%,var(--card)),color-mix(in srgb,var(--card) 70%,transparent))}
+.a:not(.lock){background:linear-gradient(145deg,color-mix(in srgb,var(--ly) 16%,var(--card)),color-mix(in srgb,var(--card) 72%,transparent))}

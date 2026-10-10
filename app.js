@@ -245,7 +245,8 @@ function tick(){if(ro)return;wake();const a=S.active;
 const bgOn=()=>{try{return localStorage.getItem('nk_bg')!=='0'}catch(e){return true}};
 function bgApply(){document.body.classList[bgOn()?'remove':'add']('still')}
 function bgSet(on){try{localStorage.setItem('nk_bg',on?'1':'0')}catch(e){}bgApply()}
-document.body.insertAdjacentHTML('afterbegin','<div id="bg"><i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i></div>');bgApply();
+function bgHTML(){let d='M0 200V150';for(let x=0;x<=1200;x+=40)d+='L'+x+' 150L'+(x+20)+' '+(90-(x*7%53))+'L'+(x+40)+' 150';d+='V200Z';let f='';for(let i=0;i<18;i++)f+='<i class="ff" style="--x:'+(i*53%100)+'%;--y:'+((i*37+11)%90)+'%;--s:'+(3+i%3)+'px;--d:'+(9+i%7*2)+'s;--w:'+(2+i%4*.7)+'s;--dx:'+((i%2?1:-1)*(20+i*3%40))+'px;--dy:-'+(30+i*5%50)+'px;animation-delay:-'+(i*1.3)+'s,-'+(i*.7)+'s"></i>';return'<div id="bg"><i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i><i class="mist"></i><svg class="trees" viewBox="0 0 1200 200" preserveAspectRatio="none"><path d="'+d+'"/></svg>'+f+'</div>'}
+document.body.insertAdjacentHTML('afterbegin',bgHTML());bgApply();
 // ===== Biểu đồ đường (SVG tự vẽ, không dùng thư viện) =====
 // series: [{c: màu, v: [số phút mỗi ngày, null = chưa có], dash: nét đứt, fill: tô vùng dưới đường}]
 function chart(series,labels,o){const W=340,H=160,L=30,R=10,T=14,B=22,pw=W-L-R,ph=H-T-B;
