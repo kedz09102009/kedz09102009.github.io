@@ -165,7 +165,7 @@ function draw(){if(!SUBJ[S.sel])S.sel=vis('')[0];
   const q=k=>{let n=0,c=0;S.sessions.forEach(x=>{if(x.subj==k){n+=x.n||0;c+=x.c||0}});return[n,c]};
   const qs=Object.keys(SUBJ).map(k=>[SUBJ[k].n,...q(k)]).filter(x=>x[1]).map(x=>`${x[0]}: ${x[1]} bài, ${Math.round(x[2]/x[1]*100)}% đúng`).join(' · ');
   $('act').innerHTML=(Object.keys(s.ty).length?Object.keys(s.ty).map(k=>`<div class="sub"><span>${k}</span><span>${hm(s.ty[k])}</span></div><div class="bar"><i style="width:${s.ty[k]/tm*100}%;background:var(--ac)"></i></div>`).join(''):'<div class="empty">Chọn loại hoạt động khi lưu buổi học để xem thống kê ở đây.</div>')+`<div class="sub" style="margin-top:12px"><span>📝 Bài tập</span><span>${s.pn} bài · ${s.pn?Math.round(s.pc/s.pn*100)+'% đúng':'chưa có'}</span></div>`+(qs?`<small class="s">${qs}</small>`:'')+(th>pr*2&&th>1800?'<small class="s" style="margin-top:8px">💡 Bạn đang đọc lý thuyết nhiều hơn luyện tập — thử làm thêm bài tập nhé.</small>':'');
-  $('set').innerHTML=`<b>Môn học</b>${subUI()}<div style="height:10px"></div><div class="in">🎯 Mục tiêu ngày <input type="number" min="1" value="${S.goalD}" onchange="cfg('goalD',Math.max(1,+this.value||120))"> phút</div><div class="in">📅 Mục tiêu tuần <input type="number" min="1" value="${S.goalW}" onchange="cfg('goalW',Math.max(1,+this.value||600))"> phút</div><div class="in"><label><input type="checkbox" ${bgOn()?'checked':''} onchange="bgSet(this.checked)"> 🌌 Nền động (tắt đi để tiết kiệm pin)</label></div><div class="in">📆 Mục tiêu số ngày học mỗi tuần <input type="number" min="1" max="7" value="${S.goalDays||5}" onchange="cfg('goalDays',Math.min(7,Math.max(1,+this.value||5)))"> ngày</div><div class="in">🛌 Ngày nghỉ miễn chuỗi mỗi tuần <input type="number" min="0" max="3" value="${S.rest==null?1:S.rest}" onchange="cfg('rest',Math.min(3,Math.max(0,+this.value||0)))"> ngày</div><div class="in">🔥 Ngày tính vào chuỗi khi học ≥ <input type="number" min="1" value="${S.minD||15}" onchange="cfg('minD',Math.max(1,+this.value||15))"> phút</div><div class="in">⏰ Nhắc học lúc <input type="time" value="${S.rem||''}" onchange="setRem(this.value)"></div><small class="s">Nhắc trong trang chỉ chạy khi trang đang mở. Muốn nhắc cả khi đã đóng trang, hãy thêm vào lịch điện thoại.</small><div class="row" style="justify-content:flex-start;margin-top:10px"><button class="btn g" onclick="exp()">⬇ Tải bản sao lưu</button><button class="btn g" onclick="ics()">📆 Nhắc qua lịch điện thoại</button><label class="btn g">⬆ Nhập sao lưu<input type="file" accept=".json,application/json" hidden onchange="imp(this)"></label><label class="btn g">♻ Khôi phục (thay thế toàn bộ)<input type="file" accept=".json,application/json" hidden onchange="imp(this,1)"></label></div><small class="s" id="sy" style="margin-top:8px"></small>`;
+  $('set').innerHTML=`<b>Môn học</b>${subUI()}<div style="height:10px"></div><div class="in">🎯 Mục tiêu ngày <input type="number" min="1" value="${S.goalD}" onchange="cfg('goalD',Math.max(1,+this.value||120))"> phút</div><div class="in">📅 Mục tiêu tuần <input type="number" min="1" value="${S.goalW}" onchange="cfg('goalW',Math.max(1,+this.value||600))"> phút</div><div class="in">✨ Hiệu ứng chuyển động <select onchange="bgSet(this.value)">${[['auto','Theo hệ thống'],['on','Luôn bật'],['off','Tắt (tiết kiệm pin)']].map(([k,n])=>`<option value="${k}" ${bgMode()==k?'selected':''}>${n}</option>`).join('')}</select></div>${bgMode()=='auto'&&redMotion()?'<small class="s">⚠ Máy bạn đang bật "giảm chuyển động" nên hiệu ứng đang tắt. Chọn "Luôn bật" để xem hiệu ứng.</small>':''}<div class="in">📆 Mục tiêu số ngày học mỗi tuần <input type="number" min="1" max="7" value="${S.goalDays||5}" onchange="cfg('goalDays',Math.min(7,Math.max(1,+this.value||5)))"> ngày</div><div class="in">🛌 Ngày nghỉ miễn chuỗi mỗi tuần <input type="number" min="0" max="3" value="${S.rest==null?1:S.rest}" onchange="cfg('rest',Math.min(3,Math.max(0,+this.value||0)))"> ngày</div><div class="in">🔥 Ngày tính vào chuỗi khi học ≥ <input type="number" min="1" value="${S.minD||15}" onchange="cfg('minD',Math.max(1,+this.value||15))"> phút</div><div class="in">⏰ Nhắc học lúc <input type="time" value="${S.rem||''}" onchange="setRem(this.value)"></div><small class="s">Nhắc trong trang chỉ chạy khi trang đang mở. Muốn nhắc cả khi đã đóng trang, hãy thêm vào lịch điện thoại.</small><div class="row" style="justify-content:flex-start;margin-top:10px"><button class="btn g" onclick="exp()">⬇ Tải bản sao lưu</button><button class="btn g" onclick="ics()">📆 Nhắc qua lịch điện thoại</button><label class="btn g">⬆ Nhập sao lưu<input type="file" accept=".json,application/json" hidden onchange="imp(this)"></label><label class="btn g">♻ Khôi phục (thay thế toàn bộ)<input type="file" accept=".json,application/json" hidden onchange="imp(this,1)"></label></div><small class="s" id="sy" style="margin-top:8px"></small>`;
   const f0=new Date(cY,cM,1),nd=new Date(cY,cM+1,0).getDate(),off=(f0.getDay()+6)%7;
   let cells=['T2','T3','T4','T5','T6','T7','CN'].map(x=>`<small class="s" style="text-align:center">${x}</small>`).join(''),mt=0,md=0;
   for(let i=0;i<off;i++)cells+='<i></i>';
@@ -240,12 +240,30 @@ function tick(){if(ro)return;wake();const a=S.active;
   if(S.rem){const d=new Date(),k=dk(d);
     if(pad(d.getHours())+':'+pad(d.getMinutes())>=S.rem&&S.remd!==k){S.remd=k;save();
       if(!a&&!S.sessions.some(x=>dk(x.ts)==k)){ping('⏰ Đến giờ học rồi — hôm nay bạn chưa học buổi nào!');}}}}
-// ===== Nền động =====
-// Ba mảng màu mờ trôi chậm phía sau trang (chỉ dùng CSS, nhẹ máy). Bật/tắt trong Cài đặt; lựa chọn lưu riêng cho từng thiết bị.
-const bgOn=()=>{try{return localStorage.getItem('nk_bg')!=='0'}catch(e){return true}};
-function bgApply(){document.body.classList[bgOn()?'remove':'add']('still')}
-function bgSet(on){try{localStorage.setItem('nk_bg',on?'1':'0')}catch(e){}bgApply()}
-document.body.insertAdjacentHTML('afterbegin','<div id="bg"><i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i></div>');bgApply();
+// ===== Hiệu ứng chuyển động =====
+// Khi cuộn: nền trôi theo, thanh tiến độ cuộn chạy ở đầu trang, các khối hiện dần khi vào màn hình.
+// Khi bấm nút: gợn sóng lan ra từ chỗ bấm (Android còn rung nhẹ). Khi gõ chữ hoặc số: ô nhập nảy nhẹ và sáng viền.
+// Mọi hiệu ứng chỉ chạy khi <body> có lớp "fx". Bật/tắt trong Cài đặt; lựa chọn lưu riêng cho từng thiết bị.
+// auto = theo cài đặt "giảm chuyển động" của hệ thống, on = luôn bật, off = tắt
+const bgMode=()=>{try{const v=localStorage.getItem('nk_bg');return v==='0'?'off':(v==='on'||v==='off')?v:'auto'}catch(e){return'auto'}};
+const redMotion=()=>!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const fxOn=()=>{const m=bgMode();return m=='on'||(m=='auto'&&!redMotion())};
+function bgApply(){document.body.classList[fxOn()?'add':'remove']('fx')}
+function bgSet(m){try{localStorage.setItem('nk_bg',m)}catch(e){}bgApply();render()}
+document.body.insertAdjacentHTML('afterbegin','<div id="bg"><i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i><i class="blob b4"></i></div><div id="sb"></div>');bgApply();
+let raf=0;
+function onScroll(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;const y=window.scrollY||0,h=Math.max(1,document.documentElement.scrollHeight-window.innerHeight),s=document.body.style;s.setProperty('--sy',y);s.setProperty('--sp',Math.min(1,y/h).toFixed(4))})}
+window.addEventListener('scroll',onScroll,{passive:true});
+if(window.IntersectionObserver){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.08});
+  document.querySelectorAll('main > *').forEach(n=>io.observe(n));document.body.classList.add('rv')}
+if(document.addEventListener){
+  document.addEventListener('pointerdown',e=>{if(!document.body.classList.contains('fx'))return;
+    const b=e.target.closest&&e.target.closest('.btn,.chip,.seg button,.x,.stars button');if(!b)return;
+    const r=b.getBoundingClientRect(),z=Math.max(r.width,r.height)*2.2,p=document.createElement('span');p.className='rip';
+    p.style.cssText=`width:${z}px;height:${z}px;left:${e.clientX-r.left-z/2}px;top:${e.clientY-r.top-z/2}px`;b.appendChild(p);setTimeout(()=>p.remove(),600);
+    try{if(navigator.vibrate)navigator.vibrate(6)}catch(x){}});
+  document.addEventListener('input',e=>{const t=e.target;if(!document.body.classList.contains('fx')||!t||!t.matches||!t.matches('input[type=text],input[type=number],input[type=date],input[type=time]'))return;
+    t.classList.remove('typing');void t.offsetWidth;t.classList.add('typing');clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('typing'),240)})}
 // ===== Biểu đồ đường (SVG tự vẽ, không dùng thư viện) =====
 // series: [{c: màu, v: [số phút mỗi ngày, null = chưa có], dash: nét đứt, fill: tô vùng dưới đường}]
 function chart(series,labels,o){const W=340,H=160,L=30,R=10,T=14,B=22,pw=W-L-R,ph=H-T-B;

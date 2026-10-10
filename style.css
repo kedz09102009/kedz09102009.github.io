@@ -88,16 +88,34 @@ h2::before{content:"";width:4px;height:15px;border-radius:2px;background:linear-
 main>*{animation:up .45s both}
 @media (prefers-reduced-motion:reduce){main>*{animation:none}.bar i{transition:none}}
 
-/* ===== Nền động: ba mảng màu mờ trôi chậm ===== */
+/* ===== Nền màu (đứng yên, trôi theo khi cuộn) và hiệu ứng chuyển động. Muốn nền đậm/nhạt hơn: sửa --ba. ===== */
+:root{--ba:.34}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ba:.58}}
 #bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
-.blob{position:absolute;border-radius:50%;width:70vmax;height:70vmax;will-change:transform;opacity:.6}
-.b1{left:-20vmax;top:-25vmax;background:radial-gradient(circle,color-mix(in srgb,var(--ac2) 50%,transparent) 0,transparent 62%);animation:fl1 32s ease-in-out infinite alternate}
-.b2{right:-25vmax;top:8vh;background:radial-gradient(circle,color-mix(in srgb,#6d8cff 40%,transparent) 0,transparent 62%);animation:fl2 40s ease-in-out infinite alternate}
-.b3{left:5vmax;bottom:-35vmax;background:radial-gradient(circle,color-mix(in srgb,var(--ly) 32%,transparent) 0,transparent 62%);animation:fl3 36s ease-in-out infinite alternate}
-@keyframes fl1{to{transform:translate3d(18vmax,12vmax,0) scale(1.15)}}
-@keyframes fl2{to{transform:translate3d(-16vmax,10vmax,0) scale(.9)}}
-@keyframes fl3{to{transform:translate3d(14vmax,-14vmax,0) scale(1.2)}}
-.still .blob,.still.blob{animation:none}
-@media (prefers-reduced-motion:reduce){.blob{animation:none}}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .blob{opacity:.42}}
-.card,.stat,.a{background:color-mix(in srgb,var(--card) 88%,transparent)}
+.blob{position:absolute;border-radius:50%;width:75vmax;height:75vmax;will-change:transform;transition:transform .5s ease-out}
+.b1{left:-25vmax;top:-30vmax;background:radial-gradient(circle,rgba(40,200,150,var(--ba)) 0,transparent 65%)}
+.b2{right:-30vmax;top:5vh;background:radial-gradient(circle,rgba(100,130,255,var(--ba)) 0,transparent 65%)}
+.b3{left:0;bottom:-40vmax;background:radial-gradient(circle,rgba(255,140,110,calc(var(--ba)*.85)) 0,transparent 65%)}
+.b4{right:-10vmax;bottom:-30vmax;width:60vmax;height:60vmax;background:radial-gradient(circle,rgba(190,110,255,calc(var(--ba)*.8)) 0,transparent 65%)}
+.fx .b1{transform:translate3d(0,calc(var(--sy,0)*-.12px),0) scale(calc(1 + var(--sp,0)*.3))}
+.fx .b2{transform:translate3d(calc(var(--sp,0)*-6vmax),calc(var(--sy,0)*-.2px),0) scale(calc(1 - var(--sp,0)*.15))}
+.fx .b3{transform:translate3d(calc(var(--sp,0)*8vmax),calc(var(--sy,0)*-.3px),0) scale(calc(1 + var(--sp,0)*.35))}
+.fx .b4{transform:translate3d(calc(var(--sp,0)*-8vmax),calc(var(--sy,0)*-.16px),0)}
+.card,.stat,.a{background:color-mix(in srgb,var(--card) 84%,transparent)}
+main>*{animation:none}
+/* Thanh tiến độ cuộn */
+#sb{position:fixed;top:0;left:0;right:0;height:3px;transform-origin:0 50%;transform:scaleX(var(--sp,0));background:linear-gradient(90deg,var(--ac),var(--ac2));z-index:50;display:none;transition:transform .15s linear}
+.fx #sb{display:block}
+/* Các khối hiện dần khi cuộn tới */
+.fx.rv main>*{opacity:0;translate:0 24px;transition:opacity .6s ease,translate .6s cubic-bezier(.2,.7,.2,1)}
+.fx.rv main>*.in{opacity:1;translate:none}
+/* Bấm nút: nhún nhẹ và gợn sóng */
+.fx .btn,.fx .chip,.fx .seg button,.fx .x,.fx .stars button{position:relative;overflow:hidden}
+.fx .btn:active,.fx .chip:active{transform:scale(.94)}
+.rip{position:absolute;border-radius:50%;background:currentColor;opacity:.28;transform:scale(0);animation:rip .55s ease-out forwards;pointer-events:none}
+@keyframes rip{to{transform:scale(1);opacity:0}}
+/* Gõ chữ hoặc số: sáng viền, nảy nhẹ */
+input,select{transition:box-shadow .2s,border-color .2s}
+input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 28%,transparent)}
+.fx input.typing{animation:tpop .22s ease-out}
+@keyframes tpop{40%{transform:scale(1.025);box-shadow:0 0 0 5px color-mix(in srgb,var(--ac) 38%,transparent)}}
