@@ -101,3 +101,44 @@ main>*{animation:up .45s both}
 @media (prefers-reduced-motion:reduce){.blob{animation:none}}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .blob{opacity:.42}}
 .card,.stat,.a{background:color-mix(in srgb,var(--card) 88%,transparent)}
+
+/* ===== Giao diện "Rừng đêm" (ghi đè, đặt cuối file) ===== */
+:root{--bg:#eef4ef;--card:#fff;--bd:#d3e2d8;--tx:#14211c;--mut:#4a5f57;--ac:#17795c;--ac2:#2fb58e;--ly:#c26512;--toan:#3866c8;--acx:#fff;--danger:#b3261e;--sh:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#08110f;--card:#101c19;--bd:#24403a;--tx:#ebf5f0;--mut:#b0c4bc;--ac:#4fe0b0;--ac2:#9cf0cf;--ly:#f2a65a;--toan:#8db4ff;--acx:#05231a;--danger:#ff9a90;--sh:none}}
+:root[data-theme="dark"]{--bg:#08110f;--card:#101c19;--bd:#24403a;--tx:#ebf5f0;--mut:#b0c4bc;--ac:#4fe0b0;--ac2:#9cf0cf;--ly:#f2a65a;--toan:#8db4ff;--acx:#05231a;--danger:#ff9a90;--sh:none}
+body{background:linear-gradient(180deg,var(--bg),color-mix(in srgb,var(--bg) 85%,var(--ac)) 140%) fixed;font-size:16px;line-height:1.55}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+main>*{animation:none}main{animation:fi .6s both}@keyframes fi{from{opacity:0}to{opacity:1}}
+h1{font-size:30px;letter-spacing:-.02em;background:none;color:var(--tx);-webkit-text-fill-color:currentColor}
+h2{text-transform:none;letter-spacing:0;font-size:18px;font-weight:700;color:var(--tx);margin:30px 0 12px}
+h2::before{width:4px;height:18px;background:var(--ac);box-shadow:0 0 10px var(--ac)}
+.card{background:color-mix(in srgb,var(--card) 80%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid color-mix(in srgb,var(--tx) 10%,transparent);border-radius:20px;box-shadow:none}
+.stat,.a{background:color-mix(in srgb,var(--card) 80%,transparent);border:1px solid color-mix(in srgb,var(--tx) 10%,transparent);border-radius:14px;box-shadow:none}
+.stat{border-top:2px solid var(--ac)}.stat b{font-size:22px}.stat span{font-size:13px;color:var(--mut)}
+#timer{box-shadow:0 0 60px -18px var(--ac)}
+.ring{box-shadow:0 0 0 8px color-mix(in srgb,var(--ac) 10%,transparent),0 0 44px color-mix(in srgb,var(--ac) 38%,transparent)}
+.inr{background:color-mix(in srgb,var(--card) 92%,transparent)}
+small.s,.a small,.h small,.empty,.week div.c{color:var(--mut)}small.s{font-size:13px;line-height:1.45}
+.sub{font-size:15px}.sub b{color:var(--ac)}
+.bar{height:10px;background:color-mix(in srgb,var(--tx) 12%,transparent)}
+.lv b{font-size:34px;color:var(--ac);letter-spacing:-.02em}
+.btn{border-radius:12px;color:var(--acx);box-shadow:0 4px 18px -4px color-mix(in srgb,var(--ac) 55%,transparent)}
+.btn.g{color:var(--tx);border:1.5px solid color-mix(in srgb,var(--tx) 22%,transparent)}
+.x{border:1px solid color-mix(in srgb,var(--tx) 20%,transparent);border-radius:99px;color:var(--tx);font-size:13px;padding:5px 12px;min-height:32px;margin-left:4px}
+.x:hover{background:color-mix(in srgb,var(--tx) 8%,transparent)}
+.x[onclick*="signOut"],.x[onclick*="leaveRoom"],.x[onclick*="del"]{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%,transparent)}
+.in input[type=text],.in input[type=number],.in input[type=time],.in input[type=date],.in select,input[type=text]{background:color-mix(in srgb,var(--bg) 70%,transparent);border-color:color-mix(in srgb,var(--tx) 18%,transparent)}
+.gt{fill:var(--mut);font-size:10px}.gl{stroke:color-mix(in srgb,var(--tx) 12%,transparent)}
+.goal{border-color:color-mix(in srgb,var(--tx) 12%,transparent)}
+.a:not(.lock){outline:0;border-color:var(--ac2)}
+.b1{background:radial-gradient(circle,color-mix(in srgb,var(--ac) 38%,transparent) 0,transparent 62%)}
+.b2{background:radial-gradient(circle,color-mix(in srgb,#2a7f8f 34%,transparent) 0,transparent 62%)}
+.b3{background:radial-gradient(circle,color-mix(in srgb,var(--ly) 22%,transparent) 0,transparent 62%)}
+#bg::before,#bg::after{content:"";position:absolute;inset:0;display:none;background-repeat:no-repeat;animation:ff 7s ease-in-out infinite alternate}
+#bg::before{background-image:radial-gradient(circle at 12% 28%,#ffe28a 0 2px,transparent 3px),radial-gradient(circle at 78% 18%,#ffe28a 0 2px,transparent 3px),radial-gradient(circle at 90% 62%,#ffe28a 0 1.5px,transparent 3px),radial-gradient(circle at 30% 80%,#ffe28a 0 2px,transparent 3px)}
+#bg::after{background-image:radial-gradient(circle at 55% 10%,#ffe28a 0 1.5px,transparent 3px),radial-gradient(circle at 6% 66%,#ffe28a 0 2px,transparent 3px),radial-gradient(circle at 66% 90%,#ffe28a 0 2px,transparent 3px);animation-duration:9s;animation-delay:-3s}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #bg::before,:root:not([data-theme="light"]) #bg::after{display:block}}
+:root[data-theme="dark"] #bg::before,:root[data-theme="dark"] #bg::after{display:block}
+@keyframes ff{from{opacity:.15;transform:translate3d(0,0,0)}to{opacity:.95;transform:translate3d(10px,-14px,0)}}
+.still #bg::before,.still #bg::after{animation:none}
+@media (prefers-reduced-motion:reduce){#bg::before,#bg::after,main{animation:none}}
