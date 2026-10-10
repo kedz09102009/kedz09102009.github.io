@@ -1,3 +1,4 @@
+
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
@@ -6,11 +7,11 @@ const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.sub
 // S chứa mọi thứ: sessions = các buổi học đã lưu, active = buổi đang học,
 // ach = thành tích đã mở khoá, goalD/goalW = mục tiêu ngày/tuần (phút).
 // S được lưu vào localStorage (bộ nhớ của trình duyệt) bằng hàm save().
-let S={sessions:[],active:null,sel:'toan',ach:{},del:{},su:0,goalD:120,goalW:600,pomo:false,rem:'',u:0,ver:1,rev:0,minD:15,goalDays:5,rest:1,room:'',name:'',goals:[],subjects:DEF_SUBJ.map(x=>({...x}))},fin=false,focus=0,topic='',typ='',vN='',vC='',delId=0,hAll=false,EF=null,chM='w',GF=null,cY=new Date().getFullYear(),cM=new Date().getMonth();
+let S={sessions:[],active:null,sel:'toan',ach:{},del:{},su:0,goalD:120,goalW:600,pomo:false,rem:'',u:0,ver:1,rev:0,minD:15,goalDays:5,rest:1,room:'',name:'',subjects:DEF_SUBJ.map(x=>({...x}))},fin=false,focus=0,topic='',typ='',vN='',vC='',delId=0,hAll=false,EF=null,cY=new Date().getFullYear(),cM=new Date().getMonth();
 const VER=1; // phiên bản định dạng dữ liệu. Sau này nếu đổi cách lưu, tăng số này và xử lý trong migrate()
 function migrate(o){if(!o||typeof o!='object')return{};
   o.sessions=(Array.isArray(o.sessions)?o.sessions:[]).filter(x=>x&&typeof x.ts=='number'&&typeof x.dur=='number'&&typeof x.subj=='string'); // bỏ bản ghi hỏng
-  o.del=o.del||{};o.ach=o.ach||{};o.ver=o.ver||1;if(!Array.isArray(o.subjects)||!o.subjects.length)delete o.subjects;if(!Array.isArray(o.goals))delete o.goals;return o}
+  o.del=o.del||{};o.ach=o.ach||{};o.ver=o.ver||1;if(!Array.isArray(o.subjects)||!o.subjects.length)delete o.subjects;return o}
 try{const r=localStorage.getItem('studylog');if(r)S=Object.assign(S,migrate(JSON.parse(r)))}catch(e){}
 function rebuildSubj(){Object.keys(SUBJ).forEach(k=>delete SUBJ[k]);S.subjects.forEach(x=>{SUBJ[x.id]=x})}
 // Đảm bảo mọi môn có buổi học đều có trong danh sách môn (phòng khi dữ liệu đến từ nơi khác)
@@ -144,7 +145,7 @@ function render(){
 function draw(){if(!SUBJ[S.sel])S.sel=vis('')[0];
   const a=S.active,sub=a?a.subj:S.sel;
   let t='<div class="chips">'+vis(sub).map(k=>`<button class="chip ${k==sub?'on':''}" ${a?'disabled':''} style="${k==sub?'background:'+SUBJ[k].c:''}" onclick="pick('${k}')">${SUBJ[k].n}</button>`).join('')+'</div>';
-  {const td=stats().days[dk(Date.now())]||0,p=Math.min(td/(S.goalD*60),1)*100;t+=`<div class="ring" style="--p:${p.toFixed(1)}"><div class="inr"><div class="clock" id="clk">${clk(el())}</div><small class="s">Hôm nay ${Math.round(td/60)}/${S.goalD} phút</small></div></div>`}if(S.pomo&&a&&!fin)t+='<div class="empty" id="pm" style="padding:0 0 8px"></div>';
+  t+=`<div class="clock" id="clk">${clk(el())}</div>`;if(S.pomo&&a&&!fin)t+='<div class="empty" id="pm" style="padding:0 0 8px"></div>';
   if(a&&a.gap)t+=`<div class="warn">⏸ Đồng hồ tự tạm dừng lúc ${new Date(a.gap.at).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})} vì không có hoạt động trong ${hm(Math.round(a.gap.ms/1000))}. Bạn có học trong khoảng đó không?<div class="row" style="margin-top:8px"><button class="btn g" onclick="gap(0)">Không, bỏ khoảng này</button><button class="btn g" onclick="gap(1)">Có, tính cả</button></div></div>`;
   if(a&&a.ask&&a.run&&!fin)t+=`<div class="warn">⏰ Đồng hồ đã chạy ${hm(el())}. Bạn còn đang học chứ?<div class="row" style="margin-top:8px"><button class="btn g" onclick="ask(0)">Tạm dừng</button><button class="btn g" onclick="ask(1)">Vẫn đang học</button></div></div>`;
   if(!a)t+='<div class="row"><button class="btn" onclick="start()">▶ Bắt đầu học</button></div><label class="in" style="justify-content:center;margin-top:10px"><input type="checkbox" '+(S.pomo?'checked':'')+' onchange="cp(this.checked)"> 🍅 Pomodoro (25 phút học / 5 phút nghỉ)</label>';
@@ -156,8 +157,8 @@ function draw(){if(!SUBJ[S.sel])S.sel=vis('')[0];
   const lv=Math.floor(Math.sqrt(s.xp/50))+1,lo=50*(lv-1)**2,hi=50*lv*lv;
   const w0=new Date();w0.setHours(0,0,0,0);w0.setDate(w0.getDate()-((w0.getDay()+6)%7));
   let wk=0;for(let i=0;i<7;i++){const dd=new Date(w0);dd.setDate(dd.getDate()+i);wk+=s.days[dk(dd)]||0}
-  const gb=(l,v,g,c)=>`<div class="sub"><span>${l}</span><span>${hm(v)} / ${hm(g*60)}</span></div><div class="bar"><i style="width:${Math.min(v/(g*60),1)*100}%;background:${c||'var(--ac)'}"></i></div>`;
-  $('lvl').innerHTML=`<div class="lv"><b>Cấp ${lv}</b><div style="flex:1"><div class="bar"><i style="width:${(s.xp-lo)/(hi-lo)*100}%;background:var(--ac)"></i></div><small class="s">${s.xp} XP · còn ${hi-s.xp} XP lên cấp ${lv+1}</small></div></div><small class="s">1 XP/phút học · +2 XP mỗi bài làm · +1 XP mỗi bài đúng · +50 XP mỗi thành tích</small><div style="margin-top:10px">${gb('🎯 Hôm nay',today,S.goalD,'var(--ac)')}${gb('📅 Tuần này',wk,S.goalW,'var(--ly)')}</div>`;
+  const gb=(l,v,g)=>`<div class="sub"><span>${l}</span><span>${hm(v)} / ${hm(g*60)}</span></div><div class="bar"><i style="width:${Math.min(v/(g*60),1)*100}%;background:var(--ac)"></i></div>`;
+  $('lvl').innerHTML=`<div class="lv"><b>Cấp ${lv}</b><div style="flex:1"><div class="bar"><i style="width:${(s.xp-lo)/(hi-lo)*100}%;background:var(--ac)"></i></div><small class="s">${s.xp} XP · còn ${hi-s.xp} XP lên cấp ${lv+1}</small></div></div><small class="s">1 XP/phút học · +2 XP mỗi bài làm · +1 XP mỗi bài đúng · +50 XP mỗi thành tích</small><div style="margin-top:10px">${gb('🎯 Hôm nay',today,S.goalD)}${gb('📅 Tuần này',wk,S.goalW)}</div>`;
   const okd=k=>(s.days[k]||0)>=(S.minD||15)*60,gd=S.goalDays||5;let wd=0,dots='';
   ['T2','T3','T4','T5','T6','T7','CN'].forEach((n,i)=>{const dd=new Date(w0);dd.setDate(dd.getDate()+i);const k=dk(dd),on=okd(k);if(on)wd++;dots+=`<span class="dt ${on?'on':''} ${k==dk(Date.now())?'td':''}">${n}</span>`});
   $('hab').innerHTML=`<div class="dots">${dots}</div><div class="sub"><span>Tuần này</span><span>${wd}/${gd} ngày${wd>=gd?' ✅':''}</span></div><div class="bar"><i style="width:${Math.min(wd/gd,1)*100}%;background:var(--ac)"></i></div><small class="s" style="margin-top:8px">30 ngày qua: ${s.m30}/30 ngày · Chuỗi: ${s.cur} ngày 🔥 · Ngày nghỉ miễn chuỗi tuần này: còn ${s.restLeft}</small>`;
@@ -165,17 +166,21 @@ function draw(){if(!SUBJ[S.sel])S.sel=vis('')[0];
   const q=k=>{let n=0,c=0;S.sessions.forEach(x=>{if(x.subj==k){n+=x.n||0;c+=x.c||0}});return[n,c]};
   const qs=Object.keys(SUBJ).map(k=>[SUBJ[k].n,...q(k)]).filter(x=>x[1]).map(x=>`${x[0]}: ${x[1]} bài, ${Math.round(x[2]/x[1]*100)}% đúng`).join(' · ');
   $('act').innerHTML=(Object.keys(s.ty).length?Object.keys(s.ty).map(k=>`<div class="sub"><span>${k}</span><span>${hm(s.ty[k])}</span></div><div class="bar"><i style="width:${s.ty[k]/tm*100}%;background:var(--ac)"></i></div>`).join(''):'<div class="empty">Chọn loại hoạt động khi lưu buổi học để xem thống kê ở đây.</div>')+`<div class="sub" style="margin-top:12px"><span>📝 Bài tập</span><span>${s.pn} bài · ${s.pn?Math.round(s.pc/s.pn*100)+'% đúng':'chưa có'}</span></div>`+(qs?`<small class="s">${qs}</small>`:'')+(th>pr*2&&th>1800?'<small class="s" style="margin-top:8px">💡 Bạn đang đọc lý thuyết nhiều hơn luyện tập — thử làm thêm bài tập nhé.</small>':'');
-  $('set').innerHTML=`<b>Môn học</b>${subUI()}<div style="height:10px"></div><div class="in">🎯 Mục tiêu ngày <input type="number" min="1" value="${S.goalD}" onchange="cfg('goalD',Math.max(1,+this.value||120))"> phút</div><div class="in">📅 Mục tiêu tuần <input type="number" min="1" value="${S.goalW}" onchange="cfg('goalW',Math.max(1,+this.value||600))"> phút</div><div class="in"><label><input type="checkbox" ${bgOn()?'checked':''} onchange="bgSet(this.checked)"> 🌌 Nền động (tắt đi để tiết kiệm pin)</label></div><div class="in">📆 Mục tiêu số ngày học mỗi tuần <input type="number" min="1" max="7" value="${S.goalDays||5}" onchange="cfg('goalDays',Math.min(7,Math.max(1,+this.value||5)))"> ngày</div><div class="in">🛌 Ngày nghỉ miễn chuỗi mỗi tuần <input type="number" min="0" max="3" value="${S.rest==null?1:S.rest}" onchange="cfg('rest',Math.min(3,Math.max(0,+this.value||0)))"> ngày</div><div class="in">🔥 Ngày tính vào chuỗi khi học ≥ <input type="number" min="1" value="${S.minD||15}" onchange="cfg('minD',Math.max(1,+this.value||15))"> phút</div><div class="in">⏰ Nhắc học lúc <input type="time" value="${S.rem||''}" onchange="setRem(this.value)"></div><small class="s">Nhắc trong trang chỉ chạy khi trang đang mở. Muốn nhắc cả khi đã đóng trang, hãy thêm vào lịch điện thoại.</small><div class="row" style="justify-content:flex-start;margin-top:10px"><button class="btn g" onclick="exp()">⬇ Tải bản sao lưu</button><button class="btn g" onclick="ics()">📆 Nhắc qua lịch điện thoại</button><label class="btn g">⬆ Nhập sao lưu<input type="file" accept=".json,application/json" hidden onchange="imp(this)"></label><label class="btn g">♻ Khôi phục (thay thế toàn bộ)<input type="file" accept=".json,application/json" hidden onchange="imp(this,1)"></label></div><small class="s" id="sy" style="margin-top:8px"></small>`;
+  $('set').innerHTML=`<b>Môn học</b>${subUI()}<div style="height:10px"></div><div class="in">🎯 Mục tiêu ngày <input type="number" min="1" value="${S.goalD}" onchange="cfg('goalD',Math.max(1,+this.value||120))"> phút</div><div class="in">📅 Mục tiêu tuần <input type="number" min="1" value="${S.goalW}" onchange="cfg('goalW',Math.max(1,+this.value||600))"> phút</div><div class="in">📆 Mục tiêu số ngày học mỗi tuần <input type="number" min="1" max="7" value="${S.goalDays||5}" onchange="cfg('goalDays',Math.min(7,Math.max(1,+this.value||5)))"> ngày</div><div class="in">🛌 Ngày nghỉ miễn chuỗi mỗi tuần <input type="number" min="0" max="3" value="${S.rest==null?1:S.rest}" onchange="cfg('rest',Math.min(3,Math.max(0,+this.value||0)))"> ngày</div><div class="in">🔥 Ngày tính vào chuỗi khi học ≥ <input type="number" min="1" value="${S.minD||15}" onchange="cfg('minD',Math.max(1,+this.value||15))"> phút</div><div class="in">⏰ Nhắc học lúc <input type="time" value="${S.rem||''}" onchange="setRem(this.value)"></div><small class="s">Nhắc trong trang chỉ chạy khi trang đang mở. Muốn nhắc cả khi đã đóng trang, hãy thêm vào lịch điện thoại.</small><div class="row" style="justify-content:flex-start;margin-top:10px"><button class="btn g" onclick="exp()">⬇ Tải bản sao lưu</button><button class="btn g" onclick="ics()">📆 Nhắc qua lịch điện thoại</button><label class="btn g">⬆ Nhập sao lưu<input type="file" accept=".json,application/json" hidden onchange="imp(this)"></label><label class="btn g">♻ Khôi phục (thay thế toàn bộ)<input type="file" accept=".json,application/json" hidden onchange="imp(this,1)"></label></div><small class="s" id="sy" style="margin-top:8px"></small>`;
   const f0=new Date(cY,cM,1),nd=new Date(cY,cM+1,0).getDate(),off=(f0.getDay()+6)%7;
   let cells=['T2','T3','T4','T5','T6','T7','CN'].map(x=>`<small class="s" style="text-align:center">${x}</small>`).join(''),mt=0,md=0;
   for(let i=0;i<off;i++)cells+='<i></i>';
   for(let d=1;d<=nd;d++){const v=s.days[cY+'-'+pad(cM+1)+'-'+pad(d)]||0,r=v/(S.goalD*60);mt+=v;if(v)md++;cells+=`<b class="cd l${!v?0:r<.25?1:r<.5?2:r<1?3:4}" title="${hm(v)}">${d}</b>`}
   $('cal').innerHTML=`<div class="in" style="justify-content:space-between"><button class="x" onclick="mv(-1)">◀</button><b>Tháng ${cM+1}/${cY}</b><button class="x" onclick="mv(1)">▶</button></div><div class="cal">${cells}</div><small class="s" style="margin-top:8px">${md} ngày có học · ${hm(mt)} · màu càng đậm càng gần mục tiêu ngày</small>`;
   $('ed').innerHTML=EF?`<div class="card" style="margin-bottom:10px"><b>${EF.id?'Sửa buổi học':'Thêm buổi học'}</b><div class="chips" style="margin:8px 0">${vis(EF.subj).map(k=>`<button class="chip t ${EF.subj==k?'on':''}" onclick="EF.subj='${k}';render()">${SUBJ[k].n}</button>`).join('')}</div><div class="in">Ngày <input type="date" value="${EF.date}" oninput="EF.date=this.value"> Giờ bắt đầu <input type="time" value="${EF.time}" oninput="EF.time=this.value"> <input type="number" min="1" value="${EF.min}" oninput="EF.min=+this.value"> phút</div><input type="text" placeholder="Nội dung đã học" value="${esc(EF.topic)}" oninput="EF.topic=this.value"><div style="text-align:center">${['Lý thuyết','Bài tập','Ôn lại','Thực hành','Nghe/nói'].map(x=>`<button class="chip t ${EF.type==x?'on':''}" onclick="EF.type=EF.type=='${x}'?'':'${x}';render()">${x}</button>`).join('')}</div><div class="in" style="justify-content:center">Bài làm <input type="number" min="0" value="${EF.n}" oninput="EF.n=+this.value"> Bài đúng <input type="number" min="0" value="${EF.c}" oninput="EF.c=+this.value"></div><div class="stars" style="text-align:center">${[1,2,3,4,5].map(n=>`<button class="${n<=EF.focus?'on':''}" onclick="EF.focus=EF.focus==${n}?0:${n};render()">★</button>`).join('')}</div><div class="row" style="margin-top:8px"><button class="btn g" onclick="EF=null;render()">Huỷ</button><button class="btn" onclick="saveEd()">Lưu</button></div></div>`:'';
-  $('race').innerHTML=raceUI(s);cs();$('goals').innerHTML=goalsUI();$('gf').innerHTML=goalForm();
+  $('race').innerHTML=raceUI(s);cs();
   const mx=Math.max(1,...Object.values(s.by));
   $('subj').innerHTML=Object.keys(SUBJ).filter(k=>!SUBJ[k].hid||s.by[k]).map(k=>`<div class="sub"><span>${SUBJ[k].n}</span><span>${hm(s.by[k]||0)}</span></div><div class="bar"><i style="width:${(s.by[k]||0)/mx*100}%;background:${SUBJ[k].c}"></i></div>`).join('');
-  $('week').innerHTML=weekUI();
+  const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-i);days.push(d)}
+  const per=days.map(d=>{const k=dk(d),o={};S.sessions.forEach(x=>spans(x).forEach(([kk,sec])=>{if(kk==k)o[x.subj]=(o[x.subj]||0)+sec}));return o});
+  const wm=Math.max(1,...per.map(o=>Object.values(o).reduce((p,c)=>p+c,0)));
+  $('week').innerHTML='<div class="week">'+days.map((d,i)=>{const o=per[i],tot=Object.values(o).reduce((p,c)=>p+c,0);
+    return `<div class="c"><span>${tot?Math.round(tot/60)+'p':''}</span><div class="st" style="height:${tot/wm*80}%">${Object.keys(o).map(k=>`<i style="height:${o[k]/tot*100}%;background:${SUBJ[k].c}"></i>`).join('')}</div><span>${['CN','T2','T3','T4','T5','T6','T7'][d.getDay()]}</span></div>`}).join('')+'</div>';
   const AL=achAll(),un=AL.filter(x=>S.ach[x[0]]).length;
   $('achT').textContent=`Thành tích (${un}/${AL.length})`;
   $('ach').innerHTML=AL.map(x=>{const[c,t]=x[4](s),u=S.ach[x[0]],p=Math.min(c/t,1)*100;
@@ -204,7 +209,7 @@ function merge(r){mergeCore(r);ensureSubjects()}
 function mergeCore(r){const del=Object.assign({},r.del,S.del),m={};
   [...(r.sessions||[]),...S.sessions].forEach(x=>{if(del[x.id])return;const y=m[x.id];if(!y||(x.m||0)>(y.m||0))m[x.id]=x});
   S.sessions=Object.values(m);S.del=del;S.ach=Object.assign({},r.ach,S.ach);
-  if((r.su||0)>(S.su||0)){S.goalD=r.goalD;S.goalW=r.goalW;S.pomo=r.pomo;S.rem=r.rem;S.minD=r.minD||15;S.goalDays=r.goalDays||5;S.room=r.room||'';S.name=r.name||'';S.rest=r.rest==null?1:r.rest;if(Array.isArray(r.subjects)&&r.subjects.length)S.subjects=r.subjects;if(Array.isArray(r.goals))S.goals=r.goals;S.su=r.su}}
+  if((r.su||0)>(S.su||0)){S.goalD=r.goalD;S.goalW=r.goalW;S.pomo=r.pomo;S.rem=r.rem;S.minD=r.minD||15;S.goalDays=r.goalDays||5;S.room=r.room||'';S.name=r.name||'';S.rest=r.rest==null?1:r.rest;if(Array.isArray(r.subjects)&&r.subjects.length)S.subjects=r.subjects;S.su=r.su}}
 function cfg(k,v){S[k]=v;S.su=Date.now();save();render()}
 function cp(v){if(v)askNotif();cfg('pomo',v)}
 function mv(d){cM+=d;if(cM<0){cM=11;cY--}if(cM>11){cM=0;cY++}render()}
@@ -240,75 +245,6 @@ function tick(){if(ro)return;wake();const a=S.active;
   if(S.rem){const d=new Date(),k=dk(d);
     if(pad(d.getHours())+':'+pad(d.getMinutes())>=S.rem&&S.remd!==k){S.remd=k;save();
       if(!a&&!S.sessions.some(x=>dk(x.ts)==k)){ping('⏰ Đến giờ học rồi — hôm nay bạn chưa học buổi nào!');}}}}
-// ===== Nền động =====
-// Ba mảng màu mờ trôi chậm phía sau trang (chỉ dùng CSS, nhẹ máy). Bật/tắt trong Cài đặt; lựa chọn lưu riêng cho từng thiết bị.
-const bgOn=()=>{try{return localStorage.getItem('nk_bg')!=='0'}catch(e){return true}};
-function bgApply(){document.body.classList[bgOn()?'remove':'add']('still')}
-function bgSet(on){try{localStorage.setItem('nk_bg',on?'1':'0')}catch(e){}bgApply()}
-function bgHTML(){let d='M0 200V150';for(let x=0;x<=1200;x+=40)d+='L'+x+' 150L'+(x+20)+' '+(90-(x*7%53))+'L'+(x+40)+' 150';d+='V200Z';let f='';for(let i=0;i<18;i++)f+='<i class="ff" style="--x:'+(i*53%100)+'%;--y:'+((i*37+11)%90)+'%;--s:'+(3+i%3)+'px;--d:'+(9+i%7*2)+'s;--w:'+(2+i%4*.7)+'s;--dx:'+((i%2?1:-1)*(20+i*3%40))+'px;--dy:-'+(30+i*5%50)+'px;animation-delay:-'+(i*1.3)+'s,-'+(i*.7)+'s"></i>';return'<div id="bg"><i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i><i class="mist"></i><svg class="trees" viewBox="0 0 1200 200" preserveAspectRatio="none"><path d="'+d+'"/></svg>'+f+'</div>'}
-document.body.insertAdjacentHTML('afterbegin',bgHTML());bgApply();
-// ===== Biểu đồ đường (SVG tự vẽ, không dùng thư viện) =====
-// series: [{c: màu, v: [số phút mỗi ngày, null = chưa có], dash: nét đứt, fill: tô vùng dưới đường}]
-function chart(series,labels,o){const W=340,H=160,L=30,R=10,T=14,B=22,pw=W-L-R,ph=H-T-B;
-  const mx=Math.max(o.ref||0,10,...series.flatMap(s=>s.v.filter(v=>v!=null)))*1.15;
-  const X=i=>L+(labels.length>1?i*pw/(labels.length-1):pw/2),Y=v=>T+ph-v/mx*ph;let g='';
-  for(let i=0;i<=3;i++){const y=T+ph*i/3;g+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" class="gl"/><text x="${L-4}" y="${y+3}" class="gt" text-anchor="end">${Math.round(mx*(1-i/3))}</text>`}
-  if(o.ref)g+=`<line x1="${L}" x2="${W-R}" y1="${Y(o.ref)}" y2="${Y(o.ref)}" class="gr"/>`;
-  labels.forEach((l,i)=>{if(!o.skip||i%o.skip==0)g+=`<text x="${X(i)}" y="${H-6}" class="gt" text-anchor="middle">${l}</text>`});
-  series.forEach(s=>{const pts=s.v.map((v,i)=>v==null?null:[X(i),Y(v)]);let d='',pen=false;
-    pts.forEach(p=>{if(!p){pen=false;return}d+=(pen?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);pen=true});
-    const f=pts.filter(Boolean);if(!f.length)return;
-    if(s.fill&&f.length>1)g+=`<path d="${d} L${f[f.length-1][0].toFixed(1)} ${T+ph} L${f[0][0].toFixed(1)} ${T+ph}Z" style="fill:${s.c}" opacity=".13"/>`;
-    g+=`<path d="${d}" fill="none" style="stroke:${s.c}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"${s.dash?' stroke-dasharray="5 4" opacity=".55"':''}/>`;
-    if(o.dots&&!s.dash)pts.forEach(p=>{if(p)g+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.5" style="fill:${s.c}"/>`})});
-  return`<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="Biểu đồ thời gian học (phút)">${g}</svg>`}
-// Số giây học theo từng ngày và từng môn (buổi qua nửa đêm đã được tách ngày)
-function perDay(){const r={};S.sessions.forEach(x=>spans(x).forEach(([k,sec])=>{const o=r[k]=r[k]||{};o[x.subj]=(o[x.subj]||0)+sec}));return r}
-function weekUI(){const pd=perDay(),w0=mon(),tk=dk(Date.now()),wd=[],DN=['T2','T3','T4','T5','T6','T7','CN'];
-  for(let i=0;i<7;i++){const d=new Date(w0);d.setDate(d.getDate()+i);wd.push(d)}
-  const mn=(k,sj)=>{const o=pd[k]||{};return(sj?(o[sj]||0):Object.values(o).reduce((p,c)=>p+c,0))/60};
-  const segs=[['w','Tuần này'],['sub','Theo môn'],['30','30 ngày']].map(([k,n])=>`<button class="${chM==k?'on':''}" onclick="chM='${k}';render()">${n}</button>`).join('');
-  let svg,note='';
-  if(chM=='30'){const L=[],V=[];for(let i=29;i>=0;i--){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-i);L.push(d.getDate());V.push(mn(dk(d)))}
-    svg=chart([{c:'var(--ac)',v:V,fill:1}],L,{ref:S.goalD,skip:5});note=`Trung bình ${Math.round(V.reduce((p,c)=>p+c,0)/30)} phút mỗi ngày · đường cam là mục tiêu ngày`}
-  else if(chM=='sub'){const ks=Object.keys(SUBJ).filter(k=>wd.some(d=>mn(dk(d),k)>0));
-    svg=chart(ks.map(k=>({c:SUBJ[k].c,v:wd.map(d=>dk(d)>tk?null:mn(dk(d),k))})),DN,{dots:1});
-    note=ks.length?ks.map(k=>`<span class="lgi"><i style="background:${SUBJ[k].c}"></i>${esc(SUBJ[k].n)}</span>`).join(''):'Chưa có buổi học nào trong tuần này'}
-  else{const cur=wd.map(d=>dk(d)>tk?null:mn(dk(d))),prev=wd.map(d=>{const p=new Date(d);p.setDate(p.getDate()-7);return mn(dk(p))}),sm=a=>a.reduce((p,c)=>p+(c||0),0);
-    svg=chart([{c:'var(--tx)',v:prev,dash:1},{c:'var(--ac)',v:cur,fill:1}],DN,{ref:S.goalD,dots:1});
-    note=`Tuần này ${hm(Math.round(sm(cur)*60))} · tuần trước ${hm(Math.round(sm(prev)*60))} (nét đứt) · đường cam là mục tiêu ngày`}
-  return`<div class="seg">${segs}</div>${svg}<small class="s" style="margin-top:6px">${note}</small>`}
-// ===== Mục tiêu và nhiệm vụ =====
-// Mỗi mục tiêu có một môn (hoặc tất cả môn), hạn (tuỳ chọn) và các nhiệm vụ. Nhiệm vụ theo tuần tự tính lại mỗi thứ Hai.
-const TT=[['hours','Giờ học mỗi tuần'],['days','Ngày học mỗi tuần'],['problems','Bài làm mỗi tuần'],['check','Việc cần làm (đánh dấu)']],TU={hours:'giờ/tuần',days:'ngày/tuần',problems:'bài/tuần'};
-function weekBy(){const w0=mon(),k0=dk(w0),e=new Date(w0);e.setDate(e.getDate()+6);const k6=dk(e),r={},add=(key,f)=>f(r[key]=r[key]||{sec:0,days:{},n:0});
-  S.sessions.forEach(x=>{spans(x).forEach(([k,sec])=>{if(k>=k0&&k<=k6)[x.subj,'*'].forEach(key=>add(key,o=>{o.sec+=sec;o.days[k]=(o.days[k]||0)+sec}))});
-    if(x.ts>=w0.getTime())[x.subj,'*'].forEach(key=>add(key,o=>{o.n+=x.n||0}))});return r}
-function goalsUI(){if(!S.goals.length)return'<div class="empty">Chưa có mục tiêu. Ví dụ: "Đạt 8 điểm Hóa" kèm nhiệm vụ "học 8 giờ mỗi tuần".</div>';
-  const wb=weekBy();
-  return S.goals.map(g=>{const d=wb[g.subj||'*']||{sec:0,days:{},n:0},sj=g.subj&&SUBJ[g.subj];
-    const rows=g.tasks.map((t,i)=>{
-      if(t.t=='check')return`<label class="tk"><input type="checkbox" ${t.done?'checked':''} onchange="chk('${g.id}',${i},this.checked)"> <span${t.done?' style="text-decoration:line-through;opacity:.6"':''}>${esc(t.txt||'')}</span></label>`;
-      let cur,lab;const tar=t.v;
-      if(t.t=='hours'){cur=d.sec/3600;lab=hm(d.sec)+' / '+tar+' giờ'}else if(t.t=='days'){cur=Object.values(d.days).filter(v=>v>=(S.minD||15)*60).length;lab=cur+'/'+tar+' ngày'}else{cur=d.n;lab=cur+'/'+tar+' bài'}
-      return`<div class="sub"><span>${{hours:'Học',days:'Học đủ',problems:'Làm'}[t.t]} ${tar} ${TU[t.t].split('/')[0]} mỗi tuần</span><span>${lab}${cur>=tar?' ✅':''}</span></div><div class="bar"><i style="width:${Math.min(cur/tar,1)*100}%;background:${sj?sj.c:'var(--ac)'}"></i></div>`}).join('');
-    let due='';if(g.due){const n=Math.ceil((new Date(g.due+'T23:59:59')-Date.now())/864e5);due=' · '+(n>=0?'hạn còn '+n+' ngày':'đã quá hạn')}
-    return`<div class="goal"><div class="gh"><b>${esc(g.title)}</b><span><button class="x" onclick="openGoal('${g.id}')">Sửa</button><button class="x" onclick="delGoal('${g.id}')">Xoá</button></span></div><small class="s">${sj?esc(sj.n):'Tất cả môn'}${due}</small>${rows}</div>`}).join('')}
-function goalForm(){if(!GF)return'';
-  return`<div class="card" style="margin-bottom:10px"><b>${GF.id?'Sửa mục tiêu':'Thêm mục tiêu'}</b><input type="text" placeholder="Mục tiêu (vd: Đạt 8 điểm Hóa)" value="${esc(GF.title)}" oninput="GF.title=this.value">
-  <div class="chips" style="margin:6px 0"><button class="chip t ${GF.subj?'':'on'}" onclick="GF.subj='';render()">Tất cả môn</button>${vis(GF.subj).map(k=>`<button class="chip t ${GF.subj==k?'on':''}" onclick="GF.subj='${k}';render()">${esc(SUBJ[k].n)}</button>`).join('')}</div>
-  <div class="in">Hạn <input type="date" value="${GF.due}" oninput="GF.due=this.value"> <small class="s">(không bắt buộc)</small></div><b style="font-size:14px">Nhiệm vụ</b>
-  ${GF.tasks.map((t,i)=>`<div class="in"><select onchange="GF.tasks[${i}].t=this.value;render()">${TT.map(([k,n])=>`<option value="${k}" ${t.t==k?'selected':''}>${n}</option>`).join('')}</select>${t.t=='check'?`<input type="text" style="flex:1;margin:0" placeholder="Việc cần làm" value="${esc(t.txt||'')}" oninput="GF.tasks[${i}].txt=this.value">`:`<input type="number" min="1" value="${t.v}" oninput="GF.tasks[${i}].v=+this.value"> <span>${TU[t.t]}</span>`}<button class="x" onclick="GF.tasks.splice(${i},1);render()">Xoá</button></div>`).join('')}
-  <button class="btn g" onclick="GF.tasks.push({t:'hours',v:5});render()">＋ Thêm nhiệm vụ</button>
-  <div class="row" style="margin-top:10px"><button class="btn g" onclick="GF=null;render()">Huỷ</button><button class="btn" onclick="saveGoal()">Lưu</button></div></div>`}
-function openGoal(id){const g=S.goals.find(y=>String(y.id)===String(id));GF=g?JSON.parse(JSON.stringify(g)):{id:0,title:'',subj:'',due:'',tasks:[{t:'hours',v:8}]};render();try{$('gf').scrollIntoView({block:'center'})}catch(e){}}
-function saveGoal(){const ts=GF.tasks.filter(t=>t.t=='check'?(t.txt||'').trim():t.v>0);
-  if(!GF.title.trim()){toast('Hãy đặt tên cho mục tiêu');return}
-  const g={id:GF.id||Date.now(),title:GF.title.trim(),subj:GF.subj,due:GF.due,tasks:ts};
-  if(GF.id){S.goals=S.goals.map(y=>y.id===GF.id?g:y)}else S.goals.push(g);
-  GF=null;S.su=Date.now();save();render()}
-function delGoal(id){if(!confirm('Xoá mục tiêu này?'))return;S.goals=S.goals.filter(y=>String(y.id)!==String(id));S.su=Date.now();save();render()}
-function chk(id,i,v){const g=S.goals.find(y=>String(y.id)===String(id));if(!g)return;g.tasks[i].done=v;S.su=Date.now();save();render()}
 // ===== 8. ĐỒNG BỘ ĐÁM MÂY + CHẠY ĐUA =====
 // Cần cấu hình Firebase (xem HUONG-DAN-DONG-BO.md). Chưa cấu hình thì phần này không làm gì và phần mềm vẫn chạy bình thường.
 // cloud.js cung cấp đối tượng window.cloud; ở đây chỉ dùng các hàm: onAuth, signIn, signOut, watchMine, setMine, setMember, delMember, watchRoom.
@@ -324,7 +260,7 @@ function weekMe(s){const w0=mon(),per={};let mins=0;
   return{xpWeek:xp+30*days,daysWeek:days,minWeek:Math.round(mins)}}
 // Chỉ những số liệu tổng hợp này được gửi cho bạn bè (không có môn học, nội dung, ghi chú)
 function summary(){const s=stats();return Object.assign({name:(S.name||'Bạn').slice(0,30),streak:s.cur,xp:s.xp,level:Math.floor(Math.sqrt(s.xp/50))+1,week:dk(mon()),t:Date.now()},weekMe(s))}
-const pk=()=>JSON.stringify({sessions:S.sessions,ach:S.ach,del:S.del,goalD:S.goalD,goalW:S.goalW,pomo:S.pomo,rem:S.rem,minD:S.minD,goalDays:S.goalDays,rest:S.rest,subjects:S.subjects,goals:S.goals,room:S.room,name:S.name,su:S.su||0,ver:S.ver});
+const pk=()=>JSON.stringify({sessions:S.sessions,ach:S.ach,del:S.del,goalD:S.goalD,goalW:S.goalW,pomo:S.pomo,rem:S.rem,minD:S.minD,goalDays:S.goalDays,rest:S.rest,subjects:S.subjects,room:S.room,name:S.name,su:S.su||0,ver:S.ver});
 // Chỉ đẩy dữ liệu lên sau khi đã nhận bản trên mạng lần đầu (cloudSynced), để máy mới không ghi đè dữ liệu cũ trên mạng
 function cPush(){if(!user||ro||!cloudSynced)return;clearTimeout(cpt);cpt=setTimeout(()=>cloud.setMine({j:pk(),u:Date.now()}).then(()=>{cstat='ok';cs()}).catch(()=>{cstat='err';cs()}),1500)}
 function pubSummary(){if(!user||ro||!S.room)return;clearTimeout(ppt);ppt=setTimeout(()=>cloud.setMember(S.room,summary()).catch(()=>{}),3000)}
@@ -348,8 +284,8 @@ function raceUI(s){
   if(!S.room)return h+'<div class="row" style="margin-top:10px"><button class="btn" onclick="newRoom()">＋ Tạo phòng mới</button></div><div class="in" style="justify-content:center"><input type="text" id="rc" style="width:140px;margin:0" placeholder="Mã phòng"><button class="btn g" onclick="joinRoom()">Tham gia</button></div>';
   const wk=dk(mon()),L=(peers||[]).map(p=>Object.assign({},p,{x:p.week==wk?p.xpWeek:0,d:p.week==wk?p.daysWeek:0})).sort((a,b)=>b.x-a.x),mx=Math.max(1,...L.map(p=>p.x));
   h+=`<div class="sub" style="margin-top:12px"><span>🏁 Phòng <b>${esc(S.room)}</b></span><button class="x" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(S.room)}').then(()=>toast('Đã sao chép mã phòng'))">Sao chép mã</button></div>`;
-  h+=L.length?L.map((p,i)=>`<div class="sub"><span>${i+1}. ${esc(p.name||'?')}${p.id==user.uid?' (bạn)':''} · Cấp ${p.level||1}</span><span>${p.x} XP · ${p.d}/7 ngày · 🔥${p.streak||0}</span></div><div class="bar"><i style="width:${p.x/mx*100}%;background:${p.id==user.uid?'var(--ac)':'var(--toan)'}"></i></div>`).join(''):'<div class="empty">Đang tải bảng xếp hạng…</div>';
-  return h+'<small class="s" style="margin-top:8px">XP tuần = XP các buổi học trong tuần (tối đa 300 mỗi ngày) + 30 XP cho mỗi ngày học đủ số phút tối thiểu. Bảng tính lại từ thứ Hai.</small><div class="row" style="justify-content:flex-start;margin-top:8px"><button class="x" onclick="confirm(\'Rời phòng này?\')&&leaveRoom()">Rời phòng</button></div>'}
+  h+=L.length?L.map((p,i)=>`<div class="sub"><span>${i+1}. ${esc(p.name||'?')}${p.id==user.uid?' (bạn)':''} · Cấp ${p.level||1}</span><span>${p.x} XP · ${p.d}/7 ngày · 🔥${p.streak||0}</span></div><div class="bar"><i style="width:${p.x/mx*100}%;background:${p.id==user.uid?'var(--ac)':'var(--ly)'}"></i></div>`).join(''):'<div class="empty">Đang tải bảng xếp hạng…</div>';
+  return h+'<small class="s" style="margin-top:8px">XP tuần = XP các buổi học trong tuần (tối đa 300 mỗi ngày) + 30 XP cho mỗi ngày học đủ số phút tối thiểu. Bảng tính lại từ thứ Hai.</small><div class="row" style="justify-content:flex-start;margin-top:8px"><button class="x" onclick="leaveRoom()">Rời phòng</button></div>'}
 window.addEventListener('cloudready',cloudInit);cloudInit();
 setInterval(tick,1000);
 // Chỉ cho MỘT tab được ghi dữ liệu (tránh hai tab ghi đè lẫn nhau). Tab đến sau chỉ hiện thông báo.
@@ -369,3 +305,4 @@ function boot(){try{if(navigator.storage&&navigator.storage.persist)navigator.st
   fetch('/api/data').then(r=>{if(!r.ok)throw 0;return r.json()}).then(o=>{
     if((o.ver||1)>VER){disk='err';stat();toast('data.json do phiên bản mới hơn tạo ra — không ghi đè');return}
     serverMode=true;merge(migrate(o));S.rev=o.rev||0;cache();toServer();render()}).catch(()=>{})}
+
