@@ -24,7 +24,7 @@ function subAdd(){const n=$('ns').value.trim();if(!n)return;const P=['#2f8f6e','
 ensureSubjects();
 // Lưu S vào localStorage. Sau mỗi thay đổi dữ liệu: gọi save() rồi render().
 // Hai nơi lưu: localStorage (bản nhớ tạm trong trình duyệt) và, nếu đang chạy server.py, file data.json trên máy.
-let serverMode=false,disk='local',st,ro=false,lastW=0,user=null,peers=null,cstat='',unM=null,unR=null,cpt,ppt,cloudHooked=false,cloudSynced=false;
+let serverMode=false,disk='local',st,ro=false,lastW=0,user=null,peers=null,cstat='',unM=null,unR=null,cpt,ppt,cloudHooked=false,cloudSynced=false,raceRank=0,racePrev={},raceBoom=0;
 function cache(){try{localStorage.setItem('studylog',JSON.stringify(S))}catch(e){}}
 function save(){if(ro)return;cache();cPush();pubSummary();if(serverMode){clearTimeout(st);st=setTimeout(toServer,800)}}
 // Ghi lên server kèm số phiên bản (rev). Nếu data.json đã bị nơi khác sửa (409): gộp dữ liệu rồi ghi lại.
@@ -172,7 +172,7 @@ function draw(){if(!SUBJ[S.sel])S.sel=vis('')[0];
   for(let d=1;d<=nd;d++){const v=s.days[cY+'-'+pad(cM+1)+'-'+pad(d)]||0,r=v/(S.goalD*60);mt+=v;if(v)md++;cells+=`<b class="cd l${!v?0:r<.25?1:r<.5?2:r<1?3:4}" title="${hm(v)}">${d}</b>`}
   $('cal').innerHTML=`<div class="in" style="justify-content:space-between"><button class="x" onclick="mv(-1)">◀</button><b>Tháng ${cM+1}/${cY}</b><button class="x" onclick="mv(1)">▶</button></div><div class="cal">${cells}</div><small class="s" style="margin-top:8px">${md} ngày có học · ${hm(mt)} · màu càng đậm càng gần mục tiêu ngày</small>`;
   $('ed').innerHTML=EF?`<div class="card" style="margin-bottom:10px"><b>${EF.id?'Sửa buổi học':'Thêm buổi học'}</b><div class="chips" style="margin:8px 0">${vis(EF.subj).map(k=>`<button class="chip t ${EF.subj==k?'on':''}" onclick="EF.subj='${k}';render()">${SUBJ[k].n}</button>`).join('')}</div><div class="in">Ngày <input type="date" value="${EF.date}" oninput="EF.date=this.value"> Giờ bắt đầu <input type="time" value="${EF.time}" oninput="EF.time=this.value"> <input type="number" min="1" value="${EF.min}" oninput="EF.min=+this.value"> phút</div><input type="text" placeholder="Nội dung đã học" value="${esc(EF.topic)}" oninput="EF.topic=this.value"><div style="text-align:center">${['Lý thuyết','Bài tập','Ôn lại','Thực hành','Nghe/nói'].map(x=>`<button class="chip t ${EF.type==x?'on':''}" onclick="EF.type=EF.type=='${x}'?'':'${x}';render()">${x}</button>`).join('')}</div><div class="in" style="justify-content:center">Bài làm <input type="number" min="0" value="${EF.n}" oninput="EF.n=+this.value"> Bài đúng <input type="number" min="0" value="${EF.c}" oninput="EF.c=+this.value"></div><div class="stars" style="text-align:center">${[1,2,3,4,5].map(n=>`<button class="${n<=EF.focus?'on':''}" onclick="EF.focus=EF.focus==${n}?0:${n};render()">★</button>`).join('')}</div><div class="row" style="margin-top:8px"><button class="btn g" onclick="EF=null;render()">Huỷ</button><button class="btn" onclick="saveEd()">Lưu</button></div></div>`:'';
-  $('race').innerHTML=raceUI(s);cs();$('goals').innerHTML=goalsUI();$('gf').innerHTML=goalForm();
+  $('race').innerHTML=raceUI(s);cs();raceFx();$('goals').innerHTML=goalsUI();$('gf').innerHTML=goalForm();
   const mx=Math.max(1,...Object.values(s.by));
   $('subj').innerHTML=Object.keys(SUBJ).filter(k=>!SUBJ[k].hid||s.by[k]).map(k=>`<div class="sub"><span>${SUBJ[k].n}</span><span>${hm(s.by[k]||0)}</span></div><div class="bar"><i style="width:${(s.by[k]||0)/mx*100}%;background:${SUBJ[k].c}"></i></div>`).join('');
   $('week').innerHTML=weekUI();
@@ -368,10 +368,35 @@ function raceUI(s){
   if(!user)return'<div class="row"><button class="btn" onclick="cloud.signIn().catch(()=>toast(\'Đăng nhập chưa thành công\'))">Đăng nhập Google để đồng bộ và chạy đua</button></div>';
   let h=`<div class="in"><span>👤 Tên hiển thị</span><input type="text" style="flex:1;margin:0" value="${esc(S.name)}" onchange="setName(this.value)"><button class="x" onclick="cloud.signOut()">Đăng xuất</button></div><small class="s" id="cs"></small>`;
   if(!S.room)return h+'<div class="row" style="margin-top:10px"><button class="btn" onclick="newRoom()">＋ Tạo phòng mới</button></div><div class="in" style="justify-content:center"><input type="text" id="rc" style="width:140px;margin:0" placeholder="Mã phòng"><button class="btn g" onclick="joinRoom()">Tham gia</button></div>';
-  const wk=dk(mon()),L=(peers||[]).map(p=>Object.assign({},p,{x:p.week==wk?p.xpWeek:0,d:p.week==wk?p.daysWeek:0})).sort((a,b)=>b.x-a.x),mx=Math.max(1,...L.map(p=>p.x));
-  h+=`<div class="sub" style="margin-top:12px"><span>🏁 Phòng <b>${esc(S.room)}</b></span><button class="x" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(S.room)}').then(()=>toast('Đã sao chép mã phòng'))">Sao chép mã</button></div>`;
-  h+=L.length?L.map((p,i)=>`<div class="sub"><span>${i+1}. ${esc(p.name||'?')}${p.id==user.uid?' (bạn)':''} · Cấp ${p.level||1}</span><span>${p.x} XP · ${p.d}/7 ngày · 🔥${p.streak||0}</span></div><div class="bar"><i style="width:${p.x/mx*100}%;background:${p.id==user.uid?'var(--ac)':'var(--ly)'}"></i></div>`).join(''):'<div class="empty">Đang tải bảng xếp hạng…</div>';
-  return h+'<small class="s" style="margin-top:8px">XP tuần = XP các buổi học trong tuần (tối đa 300 mỗi ngày) + 30 XP cho mỗi ngày học đủ số phút tối thiểu. Bảng tính lại từ thứ Hai.</small><div class="row" style="justify-content:flex-start;margin-top:8px"><button class="x" onclick="leaveRoom()">Rời phòng</button></div>'}
+  // Bảng đua: mỗi người một đường đua có hình đại diện chạy tới vị trí XP tuần của mình. Thang đua tự mở rộng khi có người vượt mốc.
+  const wk=dk(mon()),L=(peers||[]).map(p=>Object.assign({},p,{x:p.week==wk?p.xpWeek:0,d:p.week==wk?p.daysWeek:0})).sort((a,b)=>b.x-a.x),
+    top=Math.max(0,...L.map(p=>p.x)),cap=Math.max(600,Math.ceil(top*1.15/100)*100),
+    PAL=['#ff6b6b','#ffa94d','#ffd43b','#69db7c','#38d9a9','#4dabf7','#9775fa','#f783ac'],colOf=id=>PAL[[...String(id)].reduce((a,c)=>a+c.charCodeAt(0),0)%PAL.length],
+    tail=`<small class="s" style="margin-top:8px">XP tuần = XP các buổi học trong tuần (tối đa 300 mỗi ngày) + 30 XP cho mỗi ngày học đủ số phút tối thiểu. Bảng tính lại từ thứ Hai. 🏁 Vạch đích hiện tại: ${cap} XP.</small><div class="row" style="justify-content:flex-start;margin-top:8px"><button class="x" onclick="leaveRoom()">Rời phòng</button></div>`;
+  h+=`<div class="sub" style="margin-top:12px"><span>🏁 Phòng <b>${esc(S.room)}</b><i class="live" title="Cập nhật trực tiếp"></i></span><button class="x" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(S.room)}').then(()=>toast('Đã sao chép mã phòng'))">Sao chép mã</button></div>`;
+  if(!L.length)return h+'<div class="empty">Đang tải bảng xếp hạng…</div>'+tail;
+  const mi=L.findIndex(p=>p.id==user.uid),me=L[mi],nm=p=>esc(p.name||'?');
+  if(raceRank&&mi>=0&&mi+1<raceRank)raceBoom=mi==0?44:26; // vừa vượt lên: bắn pháo giấy
+  if(mi>=0)raceRank=mi+1;
+  let msg='';
+  if(L.length<2)msg='Chưa có ai khác trong phòng. Gửi mã phòng cho bạn bè để cùng chạy đua!';
+  else if(me){if(mi==0)msg=me.x>L[1].x?`🔥 Bạn đang dẫn đầu, hơn ${nm(L[1])} ${me.x-L[1].x} XP. Giữ vững nhé!`:`⚖️ Bạn và ${nm(L[1])} đang ngang điểm!`;
+    else msg=L[mi-1].x>me.x?`🏃 Bạn đang xếp thứ ${mi+1}. Còn ${L[mi-1].x-me.x} XP để vượt ${nm(L[mi-1])}.`:`⚖️ Bạn và ${nm(L[mi-1])} đang ngang điểm!`}
+  if(msg)h+=`<div class="rbanner">${msg}</div>`;
+  h+=L.map((p,i)=>{const isMe=p.id==user.uid,pc=Math.max(2,Math.min(96,p.x/cap*100)),pv=racePrev[p.id],from=pv?pv.pc:0,xf=pv?pv.x:0,
+      cls=['rr',i==0&&p.x>0?'lead':'',!pv?'ent':pv.rank>i+1?'up':pv.rank<i+1?'dn':''].join(' '),c=isMe?'var(--ac)':colOf(p.id),bg=isMe?'linear-gradient(90deg,var(--ac),var(--ac2))':c;
+    racePrev[p.id]={pc,x:p.x,rank:i+1};
+    return`<div class="${cls}" style="--i:${i}"><div class="rh"><span><span class="rk">${['🥇','🥈','🥉'][i]||(i+1)+'.'}</span><span class="rn">${esc(p.name||'?')}${isMe?' <small>(bạn)</small>':''} · Cấp ${p.level||1}</span></span><span class="rx"><b class="cu" data-from="${xf}" data-to="${p.x}" data-suf=" XP">${p.x} XP</b> · ${p.d}/7 ngày · 🔥${p.streak||0}</span></div><div class="trk"><i class="fill" style="--from:${from}%;--to:${pc}%;background:${bg}"></i><span class="av${isMe?' me':''}" style="--from:${from}%;--to:${pc}%;background:${c}">${i==0&&p.x>0?'<i class="crown">👑</i>':''}${esc([...(p.name||'?')][0].toUpperCase())}</span><span class="flag">🏁</span></div></div>`}).join('');
+  return h+tail}
+// Hiệu ứng sau khi vẽ bảng đua: số XP chạy từ giá trị cũ lên giá trị mới, pháo giấy khi bạn vượt lên. Chỉ chạy khi hiệu ứng đang bật.
+function raceFx(){try{if(!document.body.classList.contains('fx'))return;
+  document.querySelectorAll('#race .cu').forEach(e=>{const a=+e.dataset.from,b=+e.dataset.to;if(a===b)return;const t0=performance.now();
+    (function f(t){const k=Math.min(1,(t-t0)/800),v=Math.round(a+(b-a)*(1-Math.pow(1-k,3)));e.textContent=v+(e.dataset.suf||'');if(k<1)requestAnimationFrame(f)})(t0)});
+  if(raceBoom){confetti(raceBoom);raceBoom=0}}catch(e){}}
+function confetti(n){const r=$('race').getBoundingClientRect();if(!r)return;const C=['var(--ac)','var(--ac2)','#ffd43b','#ff6b6b','#4dabf7','#f783ac'];
+  for(let i=0;i<n;i++){const q=document.createElement('i');q.className='cf';
+    q.style.cssText=`left:${r.left+Math.random()*r.width}px;top:${Math.max(40,r.top+10)}px;background:${C[i%6]};--dx:${((Math.random()-.5)*140).toFixed(0)}px;--dy:${(180+Math.random()*220).toFixed(0)}px;--r:${(Math.random()*720-360)|0}deg`;
+    document.body.appendChild(q);setTimeout(()=>q.remove(),1600)}}
 window.addEventListener('cloudready',cloudInit);cloudInit();
 setInterval(tick,1000);
 // Chỉ cho MỘT tab được ghi dữ liệu (tránh hai tab ghi đè lẫn nhau). Tab đến sau chỉ hiện thông báo.

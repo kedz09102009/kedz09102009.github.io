@@ -139,3 +139,39 @@ input,select{transition:box-shadow .2s,border-color .2s}
 input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 28%,transparent)}
 .fx input.typing{animation:tpop .22s ease-out}
 @keyframes tpop{40%{transform:scale(1.025);box-shadow:0 0 0 5px color-mix(in srgb,var(--ac) 38%,transparent)}}
+
+/* ===== Bảng chạy đua: đường đua, hình đại diện, huy chương, hiệu ứng ===== */
+.rbanner{background:color-mix(in srgb,var(--ac) 14%,transparent);border-radius:14px;padding:9px 12px;font-size:14px;margin:10px 0 2px}
+.rr{margin:14px 0 4px;border-radius:14px}
+.rh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:14px}
+.rk{display:inline-block;min-width:28px;font-size:19px}
+.rn small{color:var(--mut)}.rx{font-variant-numeric:tabular-nums}
+.rr.lead .rn{font-weight:700}
+.trk{position:relative;height:32px;margin:6px 18px 6px 0;background:linear-gradient(var(--bd),var(--bd)) center/100% 12px no-repeat;border-radius:99px}
+.fill{position:absolute;left:0;top:50%;height:12px;width:var(--to);transform:translateY(-50%);border-radius:99px;overflow:hidden}
+.fill::after{content:"";position:absolute;inset:0 0 50% 0;background:rgba(255,255,255,.28)}
+.av{position:absolute;top:1px;left:var(--to);width:30px;height:30px;margin-left:-15px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:14px;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+.av.me{outline:3px solid var(--card);box-shadow:0 0 0 5px color-mix(in srgb,var(--ac) 45%,transparent)}
+.crown{position:absolute;left:50%;top:-20px;font-style:normal;font-size:16px;transform:translateX(-50%)}
+.flag{position:absolute;right:-20px;top:4px;font-size:18px}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff4d4d;margin:0 0 1px 8px}
+.cf{position:fixed;width:9px;height:14px;border-radius:2px;pointer-events:none;z-index:70}
+.fx .fill{animation:grow .95s cubic-bezier(.2,.8,.2,1)}
+.fx .av{animation:gro2 .95s cubic-bezier(.2,.8,.2,1)}
+@keyframes grow{from{width:var(--from)}}
+@keyframes gro2{from{left:var(--from)}}
+.fx .rr.ent{animation:rin .5s both;animation-delay:calc(var(--i)*110ms)}
+@keyframes rin{from{opacity:0;transform:translateY(16px)}}
+.fx .rr.up{animation:rup .8s ease-out}
+.fx .rr.dn{animation:rdn .8s ease-out}
+@keyframes rup{0%{transform:translateY(28px);background:color-mix(in srgb,#37c46a 32%,transparent)}100%{transform:none;background:transparent}}
+@keyframes rdn{0%{transform:translateY(-28px);background:color-mix(in srgb,#ff6b6b 28%,transparent)}100%{transform:none;background:transparent}}
+.fx .rr.lead .fill{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.3) 0 8px,transparent 8px 16px);background-size:22px 22px;animation:grow .95s cubic-bezier(.2,.8,.2,1),stripe 1s linear infinite}
+@keyframes stripe{to{background-position:22px 0}}
+.fx .crown{animation:crown 1.6s ease-in-out infinite}
+@keyframes crown{50%{transform:translateX(-50%) translateY(-5px) rotate(-10deg)}}
+.fx .live{animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.25;transform:scale(1.6)}}
+.fx .cf{animation:cf 1.5s ease-out forwards}
+@keyframes cf{to{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:0}}
+.fx .rbanner{animation:rin .6s both}
