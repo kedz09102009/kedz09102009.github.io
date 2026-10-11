@@ -1,6 +1,6 @@
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
-const BUILD='2026-10-11-1'; // số phiên bản của mã chương trình. Mỗi lần phát hành bản mới phải đổi số này để các máy đang mở bản cũ biết mà báo tải lại
+const BUILD='2026-10-11-2'; // số phiên bản của mã chương trình. Mỗi lần phát hành bản mới phải đổi số này để các máy đang mở bản cũ biết mà báo tải lại
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
 const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.subjects bằng rebuildSubj(). Thêm/đổi tên/đổi màu/ẩn môn ngay trong phần Cài đặt.
 // ===== 2. DỮ LIỆU (biến S) =====
@@ -401,14 +401,17 @@ function confetti(n){const r=$('race').getBoundingClientRect();if(!r)return;cons
 window.addEventListener('cloudready',cloudInit);cloudInit();
 // ===== Báo trang đã cũ =====
 // Định kỳ tải app.js mới nhất từ mạng (bỏ qua bộ nhớ đệm) và so số BUILD. Khác nhau thì hiện thanh báo "tải lại".
-async function chkNew(manual){lastChk=Date.now();try{const r=await fetch('app.js?chk='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;
+// style.css ghi số phiên bản của nó trong biến --css-build. Nếu khác BUILD thì giao diện (CSS) và mã (JS) đang lệch nhau, tức là một trong hai file còn cũ.
+const cssOld=()=>{try{if(typeof getComputedStyle!='function')return false;return getComputedStyle(document.documentElement).getPropertyValue('--css-build').replace(/["'\s]/g,'')!==BUILD}catch(e){return false}};
+async function chkNew(manual){lastChk=Date.now();if(cssOld()){showNew();return}try{const r=await fetch('app.js?chk='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;
   const m=new RegExp("const BUILD="+"'([^']+)'").exec(await r.text());
   if(m&&m[1]!==BUILD)showNew();else if(manual)toast('✓ Bạn đang dùng phiên bản mới nhất')}
   catch(e){if(manual)toast('Không kiểm tra được lúc này (có thể đang ngoại tuyến)')}}
 function showNew(){if(updShown)return;updShown=true;
   document.body.insertAdjacentHTML('beforeend','<div id="upd"><span>✨ Đã có phiên bản mới. Trang này đã cũ, vui lòng tải lại.</span><button class="btn" onclick="reloadNew()">Tải lại ngay</button><button class="x" onclick="this.parentNode.remove();updShown=false">Để sau</button></div>')}
 // Xoá bộ nhớ đệm của ứng dụng rồi tải lại để chắc chắn nhận bản mới
-async function reloadNew(){try{if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}}catch(e){}location.reload()}
+async function reloadNew(){try{if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}
+  await Promise.all(['./','index.html','style.css','app.js'].map(u=>fetch(u,{cache:'reload'}).catch(()=>{})))}catch(e){}location.reload()}
 setTimeout(chkNew,4000);setInterval(chkNew,30*60*1000);
 if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-lastChk>3e5)chkNew()});
 setInterval(tick,1000);
