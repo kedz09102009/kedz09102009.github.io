@@ -1,5 +1,6 @@
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
+const BUILD='2026-10-11-1'; // số phiên bản của mã chương trình. Mỗi lần phát hành bản mới phải đổi số này để các máy đang mở bản cũ biết mà báo tải lại
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
 const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.subjects bằng rebuildSubj(). Thêm/đổi tên/đổi màu/ẩn môn ngay trong phần Cài đặt.
 // ===== 2. DỮ LIỆU (biến S) =====
@@ -24,7 +25,7 @@ function subAdd(){const n=$('ns').value.trim();if(!n)return;const P=['#2f8f6e','
 ensureSubjects();
 // Lưu S vào localStorage. Sau mỗi thay đổi dữ liệu: gọi save() rồi render().
 // Hai nơi lưu: localStorage (bản nhớ tạm trong trình duyệt) và, nếu đang chạy server.py, file data.json trên máy.
-let serverMode=false,disk='local',st,ro=false,lastW=0,user=null,peers=null,cstat='',unM=null,unR=null,cpt,ppt,cloudHooked=false,cloudSynced=false,raceRank=0,racePrev={},raceBoom=0;
+let serverMode=false,disk='local',st,ro=false,lastW=0,user=null,peers=null,cstat='',unM=null,unR=null,cpt,ppt,cloudHooked=false,cloudSynced=false,raceRank=0,racePrev={},raceBoom=0,lastChk=0,updShown=false;
 function cache(){try{localStorage.setItem('studylog',JSON.stringify(S))}catch(e){}}
 function save(){if(ro)return;cache();cPush();pubSummary();if(serverMode){clearTimeout(st);st=setTimeout(toServer,800)}}
 // Ghi lên server kèm số phiên bản (rev). Nếu data.json đã bị nơi khác sửa (409): gộp dữ liệu rồi ghi lại.
@@ -165,7 +166,7 @@ function draw(){if(!SUBJ[S.sel])S.sel=vis('')[0];
   const q=k=>{let n=0,c=0;S.sessions.forEach(x=>{if(x.subj==k){n+=x.n||0;c+=x.c||0}});return[n,c]};
   const qs=Object.keys(SUBJ).map(k=>[SUBJ[k].n,...q(k)]).filter(x=>x[1]).map(x=>`${x[0]}: ${x[1]} bài, ${Math.round(x[2]/x[1]*100)}% đúng`).join(' · ');
   $('act').innerHTML=(Object.keys(s.ty).length?Object.keys(s.ty).map(k=>`<div class="sub"><span>${k}</span><span>${hm(s.ty[k])}</span></div><div class="bar"><i style="width:${s.ty[k]/tm*100}%;background:var(--ac)"></i></div>`).join(''):'<div class="empty">Chọn loại hoạt động khi lưu buổi học để xem thống kê ở đây.</div>')+`<div class="sub" style="margin-top:12px"><span>📝 Bài tập</span><span>${s.pn} bài · ${s.pn?Math.round(s.pc/s.pn*100)+'% đúng':'chưa có'}</span></div>`+(qs?`<small class="s">${qs}</small>`:'')+(th>pr*2&&th>1800?'<small class="s" style="margin-top:8px">💡 Bạn đang đọc lý thuyết nhiều hơn luyện tập — thử làm thêm bài tập nhé.</small>':'');
-  $('set').innerHTML=`<b>Môn học</b>${subUI()}<div style="height:10px"></div><div class="in">🎯 Mục tiêu ngày <input type="number" min="1" value="${S.goalD}" onchange="cfg('goalD',Math.max(1,+this.value||120))"> phút</div><div class="in">📅 Mục tiêu tuần <input type="number" min="1" value="${S.goalW}" onchange="cfg('goalW',Math.max(1,+this.value||600))"> phút</div><div class="in">🎨 Tông màu ${THEMES.map(([k,n,a,b])=>`<button class="sw ${themeGet()==k?'on':''}" style="background:linear-gradient(135deg,${a},${b})" title="${n}" aria-label="${n}" onclick="themeSet('${k}')"></button>`).join('')}</div><div class="in">✨ Hiệu ứng chuyển động <select onchange="bgSet(this.value)">${[['auto','Theo hệ thống'],['on','Luôn bật'],['off','Tắt (tiết kiệm pin)']].map(([k,n])=>`<option value="${k}" ${bgMode()==k?'selected':''}>${n}</option>`).join('')}</select></div>${bgMode()=='auto'&&redMotion()?'<small class="s">⚠ Máy bạn đang bật "giảm chuyển động" nên hiệu ứng đang tắt. Chọn "Luôn bật" để xem hiệu ứng.</small>':''}<div class="in">📆 Mục tiêu số ngày học mỗi tuần <input type="number" min="1" max="7" value="${S.goalDays||5}" onchange="cfg('goalDays',Math.min(7,Math.max(1,+this.value||5)))"> ngày</div><div class="in">🛌 Ngày nghỉ miễn chuỗi mỗi tuần <input type="number" min="0" max="3" value="${S.rest==null?1:S.rest}" onchange="cfg('rest',Math.min(3,Math.max(0,+this.value||0)))"> ngày</div><div class="in">🔥 Ngày tính vào chuỗi khi học ≥ <input type="number" min="1" value="${S.minD||15}" onchange="cfg('minD',Math.max(1,+this.value||15))"> phút</div><div class="in">⏰ Nhắc học lúc <input type="time" value="${S.rem||''}" onchange="setRem(this.value)"></div><small class="s">Nhắc trong trang chỉ chạy khi trang đang mở. Muốn nhắc cả khi đã đóng trang, hãy thêm vào lịch điện thoại.</small><div class="row" style="justify-content:flex-start;margin-top:10px"><button class="btn g" onclick="exp()">⬇ Tải bản sao lưu</button><button class="btn g" onclick="ics()">📆 Nhắc qua lịch điện thoại</button><label class="btn g">⬆ Nhập sao lưu<input type="file" accept=".json,application/json" hidden onchange="imp(this)"></label><label class="btn g">♻ Khôi phục (thay thế toàn bộ)<input type="file" accept=".json,application/json" hidden onchange="imp(this,1)"></label></div><small class="s" id="sy" style="margin-top:8px"></small>`;
+  $('set').innerHTML=`<b>Môn học</b>${subUI()}<div style="height:10px"></div><div class="in">🎯 Mục tiêu ngày <input type="number" min="1" value="${S.goalD}" onchange="cfg('goalD',Math.max(1,+this.value||120))"> phút</div><div class="in">📅 Mục tiêu tuần <input type="number" min="1" value="${S.goalW}" onchange="cfg('goalW',Math.max(1,+this.value||600))"> phút</div><div class="in">🎨 Tông màu ${THEMES.map(([k,n,a,b])=>`<button class="sw ${themeGet()==k?'on':''}" style="background:linear-gradient(135deg,${a},${b})" title="${n}" aria-label="${n}" onclick="themeSet('${k}')"></button>`).join('')}</div><div class="in">✨ Hiệu ứng chuyển động <select onchange="bgSet(this.value)">${[['auto','Theo hệ thống'],['on','Luôn bật'],['off','Tắt (tiết kiệm pin)']].map(([k,n])=>`<option value="${k}" ${bgMode()==k?'selected':''}>${n}</option>`).join('')}</select></div>${bgMode()=='auto'&&redMotion()?'<small class="s">⚠ Máy bạn đang bật "giảm chuyển động" nên hiệu ứng đang tắt. Chọn "Luôn bật" để xem hiệu ứng.</small>':''}<div class="in">📆 Mục tiêu số ngày học mỗi tuần <input type="number" min="1" max="7" value="${S.goalDays||5}" onchange="cfg('goalDays',Math.min(7,Math.max(1,+this.value||5)))"> ngày</div><div class="in">🛌 Ngày nghỉ miễn chuỗi mỗi tuần <input type="number" min="0" max="3" value="${S.rest==null?1:S.rest}" onchange="cfg('rest',Math.min(3,Math.max(0,+this.value||0)))"> ngày</div><div class="in">🔥 Ngày tính vào chuỗi khi học ≥ <input type="number" min="1" value="${S.minD||15}" onchange="cfg('minD',Math.max(1,+this.value||15))"> phút</div><div class="in">⏰ Nhắc học lúc <input type="time" value="${S.rem||''}" onchange="setRem(this.value)"></div><small class="s">Nhắc trong trang chỉ chạy khi trang đang mở. Muốn nhắc cả khi đã đóng trang, hãy thêm vào lịch điện thoại.</small><div class="row" style="justify-content:flex-start;margin-top:10px"><button class="btn g" onclick="exp()">⬇ Tải bản sao lưu</button><button class="btn g" onclick="ics()">📆 Nhắc qua lịch điện thoại</button><label class="btn g">⬆ Nhập sao lưu<input type="file" accept=".json,application/json" hidden onchange="imp(this)"></label><label class="btn g">♻ Khôi phục (thay thế toàn bộ)<input type="file" accept=".json,application/json" hidden onchange="imp(this,1)"></label></div><small class="s" id="sy" style="margin-top:8px"></small><small class="s" style="margin-top:6px">Phiên bản ${BUILD} · <button class="x" onclick="chkNew(true)">Kiểm tra bản mới</button></small>`;
   const f0=new Date(cY,cM,1),nd=new Date(cY,cM+1,0).getDate(),off=(f0.getDay()+6)%7;
   let cells=['T2','T3','T4','T5','T6','T7','CN'].map(x=>`<small class="s" style="text-align:center">${x}</small>`).join(''),mt=0,md=0;
   for(let i=0;i<off;i++)cells+='<i></i>';
@@ -398,6 +399,18 @@ function confetti(n){const r=$('race').getBoundingClientRect();if(!r)return;cons
     q.style.cssText=`left:${r.left+Math.random()*r.width}px;top:${Math.max(40,r.top+10)}px;background:${C[i%6]};--dx:${((Math.random()-.5)*140).toFixed(0)}px;--dy:${(180+Math.random()*220).toFixed(0)}px;--r:${(Math.random()*720-360)|0}deg`;
     document.body.appendChild(q);setTimeout(()=>q.remove(),1600)}}
 window.addEventListener('cloudready',cloudInit);cloudInit();
+// ===== Báo trang đã cũ =====
+// Định kỳ tải app.js mới nhất từ mạng (bỏ qua bộ nhớ đệm) và so số BUILD. Khác nhau thì hiện thanh báo "tải lại".
+async function chkNew(manual){lastChk=Date.now();try{const r=await fetch('app.js?chk='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;
+  const m=new RegExp("const BUILD="+"'([^']+)'").exec(await r.text());
+  if(m&&m[1]!==BUILD)showNew();else if(manual)toast('✓ Bạn đang dùng phiên bản mới nhất')}
+  catch(e){if(manual)toast('Không kiểm tra được lúc này (có thể đang ngoại tuyến)')}}
+function showNew(){if(updShown)return;updShown=true;
+  document.body.insertAdjacentHTML('beforeend','<div id="upd"><span>✨ Đã có phiên bản mới. Trang này đã cũ, vui lòng tải lại.</span><button class="btn" onclick="reloadNew()">Tải lại ngay</button><button class="x" onclick="this.parentNode.remove();updShown=false">Để sau</button></div>')}
+// Xoá bộ nhớ đệm của ứng dụng rồi tải lại để chắc chắn nhận bản mới
+async function reloadNew(){try{if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}}catch(e){}location.reload()}
+setTimeout(chkNew,4000);setInterval(chkNew,30*60*1000);
+if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-lastChk>3e5)chkNew()});
 setInterval(tick,1000);
 // Chỉ cho MỘT tab được ghi dữ liệu (tránh hai tab ghi đè lẫn nhau). Tab đến sau chỉ hiện thông báo.
 window.addEventListener('pagehide',()=>{if(!ro)cache()});
@@ -409,7 +422,8 @@ else boot();
 render();
 // Chỉ chạy ở tab được phép ghi dữ liệu: kiểm tra đồng hồ bị bỏ quên, rồi thử kết nối server.py.
 // Nếu có server: gộp dữ liệu trong data.json với dữ liệu của trình duyệt rồi ghi lại vào data.json.
-if('serviceWorker' in navigator&&location.protocol=='https:')navigator.serviceWorker.register('sw.js').catch(()=>{}); // chỉ khi chạy từ trang web https (bản điện thoại)
+if('serviceWorker' in navigator&&location.protocol=='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if(navigator.serviceWorker.controller)navigator.serviceWorker.addEventListener('controllerchange',showNew)} // chỉ khi chạy từ trang web https (bản điện thoại)
 function boot(){try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
   if(chkGap(Date.now()))toast('⏸ Đồng hồ đã tự tạm dừng vì trang bị đóng hoặc máy ngủ');
   render();
