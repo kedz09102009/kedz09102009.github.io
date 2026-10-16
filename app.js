@@ -152,7 +152,7 @@ function draw(){if(!SUBJ[S.sel])S.sel=vis('')[0];
   else if(!fin)t+=`<div class="row"><button class="btn g" onclick="toggle()">${a.brk?'⏭ Bỏ nghỉ':a.run?'⏸ Tạm dừng':'▶ Tiếp tục'}</button><button class="btn" onclick="stop()">■ Kết thúc</button></div>`;
   else{const ty=['Lý thuyết','Bài tập','Ôn lại','Thực hành'].concat(a.subj=='anh'?['Nghe/nói']:[]);t+=`<input type="text" id="tp" oninput="topic=this.value" placeholder="Hôm nay học nội dung gì? (vd: Đạo hàm, Dao động cơ…)" value="${esc(topic)}"><div style="text-align:center">${ty.map(x=>`<button class="chip t ${typ==x?'on':''}" onclick="setT('${x}')">${x}</button>`).join('')}</div><div class="in" style="justify-content:center">Bài đã làm <input type="number" min="0" id="fn" oninput="vN=this.value" value="${esc(vN)}"> Bài đúng <input type="number" min="0" id="fc" oninput="vC=this.value" value="${esc(vC)}"></div><div class="stars" style="text-align:center"><small style="color:var(--mut)">Mức tập trung</small><br>${[1,2,3,4,5].map(n=>`<button class="${n<=focus?'on':''}" onclick="setF(${n})">★</button>`).join('')}</div><div class="row" style="margin-top:8px"><button class="btn g" onclick="cancel()">Bỏ buổi này</button><button class="btn" onclick="saveS()">Lưu buổi học</button></div>`}
   $('timer').innerHTML=t;
-  const s=stats(),today=s.days[dk(Date.now())]||0;
+  const s=stats(),today=s.days[dk(Date.now())]||0;$('recap').innerHTML=recapUI(s);
   $('stats').innerHTML=[[hm(today),'Hôm nay'],[s.cur+' 🔥','Chuỗi ngày'],[hm(s.tot),'Tổng thời gian'],[s.n,'Số buổi']].map(x=>`<div class="stat"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('');
   const lv=Math.floor(Math.sqrt(s.xp/50))+1,lo=50*(lv-1)**2,hi=50*lv*lv;
   const w0=new Date();w0.setHours(0,0,0,0);w0.setDate(w0.getDate()-((w0.getDay()+6)%7));
@@ -346,6 +346,28 @@ function weekMe(s){const w0=mon(),per={};let mins=0;
   for(let i=0;i<7;i++){const d=new Date(w0);d.setDate(d.getDate()+i);if((s.days[dk(d)]||0)>=(S.minD||15)*60)days++}
   return{xpWeek:xp+30*days,daysWeek:days,minWeek:Math.round(mins)}}
 // Chỉ những số liệu tổng hợp này được gửi cho bạn bè (không có môn học, nội dung, ghi chú)
+function recapUI(s){
+  const m0=mon(),a0=new Date(m0);a0.setDate(a0.getDate()-7);const b0=new Date(a0);b0.setDate(b0.getDate()-7);
+  const ks=d0=>[...Array(7)].map((_,i)=>{const d=new Date(d0);d.setDate(d.getDate()+i);return dk(d)});
+  const K=ks(a0),D=s.days,sum=k=>k.reduce((t,x)=>t+(D[x]||0),0),T=sum(K),P=sum(ks(b0)),mn=(S.minD||15)*60,gw=(S.goalW||1)*60;
+  const L=S.sessions.filter(x=>x.ts>=a0.getTime()&&x.ts<m0.getTime());
+  if(!T&&!L.length)return'<div class="empty">Chưa có dữ liệu tuần trước. Sau tuần học đầu tiên, bảng tổng kết sẽ hiện ở đây.</div>';
+  const by={};S.sessions.forEach(x=>spans(x).forEach(([k,sec])=>{if(K.includes(k))by[x.subj]=(by[x.subj]||0)+sec}));
+  const dv=K.map(k=>D[k]||0),mx=Math.max(1,...dv),bi=dv.indexOf(Math.max(...dv)),dn=dv.filter(v=>v>=mn).length,N=['T2','T3','T4','T5','T6','T7','CN'];
+  const xp=L.reduce((t,x)=>t+sxp(x),0),fs=L.filter(x=>x.focus>0),af=fs.length?(fs.reduce((t,x)=>t+x.focus,0)/fs.length).toFixed(1):'–';
+  const lg=L.filter(x=>!x.man).reduce((t,x)=>Math.max(t,x.dur),0),pn=L.reduce((t,x)=>t+(x.n||0),0),pc=L.reduce((t,x)=>t+(x.c||0),0);
+  const ac=achAll().filter(a=>S.ach[a[0]]>=a0.getTime()&&S.ach[a[0]]<m0.getTime());
+  const dl=P?Math.round((T-P)/P*100):null,ch=dl==null?'':`<small class="s" style="color:${dl>=0?'var(--ac)':'var(--ly)'}">${dl>=0?'▲':'▼'} ${Math.abs(dl)}% so với tuần trước nữa</small>`;
+  const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{const j=SUBJ[k];return`<div class="sub"><span>${j?(j.ic?j.ic+' ':'')+j.n:k}</span><span>${hm(v)} · ${Math.round(v/T*100)}%</span></div><div class="bar"><i style="width:${v/T*100}%;background:${j?j.c:'var(--ac)'}"></i></div>`}).join('');
+  const bars=dv.map((v,i)=>`<div class="rcb"><i style="height:${Math.max(v?6:2,v/mx*70)}px;background:${v>=mn?'var(--ac)':'var(--bd)'}" title="${hm(v)}"></i><span>${N[i]}</span></div>`).join('');
+  const miss=gw-T,w=vis('').filter(k=>k!='khac').sort((a,b)=>(by[a]||0)-(by[b]||0))[0];
+  const tip=(miss<=0?'🎉 Đạt mục tiêu tuần! Nếu thấy vừa sức, thử nâng mục tiêu thêm khoảng 10%.':`Tuần trước còn thiếu ${hm(miss)} so với mục tiêu ${hm(gw)}.`)+(w&&SUBJ[w]&&(by[w]||0)<T*.15?` Môn ${SUBJ[w].n} còn ít, thử xếp thêm 1–2 buổi tuần này.`:'');
+  return`<div class="rc-h"><b>${hm(T)}</b><small class="s">/ mục tiêu ${hm(gw)}</small>${ch}</div>
+  <div class="bar"><i style="width:${Math.min(T/gw,1)*100}%;background:var(--ac)"></i></div>
+  <div class="rcb-w">${bars}</div>${T?`<small class="s">Ngày học nhiều nhất: ${N[bi]} (${hm(dv[bi])})</small>`:''}
+  <div class="rc-g">${[[dn+'/'+(S.goalDays||5),'ngày học đủ'],[L.length,'buổi học'],['+'+xp,'XP'],[af+' ★','tập trung TB'],[hm(lg),'buổi dài nhất'],[pn?Math.round(pc/pn*100)+'%':'–','bài làm đúng']].map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')}</div>
+  ${rows}${ac.length?`<div class="rc-a">Thành tích mới: ${ac.map(a=>a[1]+' '+a[2]).join(' · ')}</div>`:''}
+  <div class="rc-tip">${tip}</div>`}
 function summary(){const s=stats();return Object.assign({name:(S.name||'Bạn').slice(0,30),streak:s.cur,xp:s.xp,level:Math.floor(Math.sqrt(s.xp/50))+1,week:dk(mon()),t:Date.now()},weekMe(s))}
 const pk=()=>JSON.stringify({sessions:S.sessions,ach:S.ach,del:S.del,goalD:S.goalD,goalW:S.goalW,pomo:S.pomo,rem:S.rem,minD:S.minD,goalDays:S.goalDays,rest:S.rest,subjects:S.subjects,goals:S.goals,room:S.room,name:S.name,su:S.su||0,ver:S.ver});
 // Chỉ đẩy dữ liệu lên sau khi đã nhận bản trên mạng lần đầu (cloudSynced), để máy mới không ghi đè dữ liệu cũ trên mạng

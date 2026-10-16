@@ -184,3 +184,12 @@ input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shado
 
 /* Số phiên bản của giao diện. PHẢI trùng với BUILD trong app.js, nếu không phần mềm sẽ báo "trang đã cũ". */
 :root{--css-build:"2026-10-11-2"}
+
+/* ===== Tổng kết tuần trước ===== */
+.rc-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}.rc-h b{font-size:30px;letter-spacing:-.02em;color:var(--ac)}
+.rcb-w{display:flex;gap:6px;align-items:flex-end;height:96px;margin:14px 0 4px}
+.rcb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;height:100%;font-size:12px;color:var(--mut)}.rcb i{width:100%;max-width:34px;border-radius:7px 7px 3px 3px;display:block}
+.rc-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}.rc-g div{background:color-mix(in srgb,var(--tx) 6%,transparent);border-radius:12px;padding:10px 6px;text-align:center}.rc-g b{display:block;font-size:18px}.rc-g span{font-size:12px;color:var(--mut)}
+.rc-a{margin:12px 0 0;font-size:14px}
+.rc-tip{margin-top:12px;padding:12px 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--ly) 55%,transparent);background:color-mix(in srgb,var(--ly) 12%,transparent);font-size:14px}
+@media (max-width:420px){.rc-g{grid-template-columns:repeat(2,1fr)}}
