@@ -1,6 +1,6 @@
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
-const BUILD='2026-10-17-1'; // số phiên bản của mã chương trình. Mỗi lần phát hành bản mới phải đổi số này để các máy đang mở bản cũ biết mà báo tải lại
+const BUILD='2026-10-17-2'; // số phiên bản của mã chương trình. Mỗi lần phát hành bản mới phải đổi số này để các máy đang mở bản cũ biết mà báo tải lại
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
 const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.subjects bằng rebuildSubj(). Thêm/đổi tên/đổi màu/ẩn môn ngay trong phần Cài đặt.
 // ===== 2. DỮ LIỆU (biến S) =====
@@ -340,11 +340,11 @@ const mon=()=>{const w=new Date();w.setHours(0,0,0,0);w.setDate(w.getDate()-((w.
 // XP của một buổi học (dùng chung cho tổng XP và XP tuần)
 function sxp(x){const m=Math.floor(x.dur/60),cap=Math.max(10,m*2),n=Math.min(x.n||0,cap),c=Math.min(x.c||0,n);return Math.round((m+2*n+c)*(x.man?.5:1))}
 // XP tuần = XP các buổi học trong tuần (tối đa 300 mỗi ngày) + 30 XP cho mỗi ngày học đủ số phút tối thiểu
-function weekFor(w0,s){const end=new Date(w0);end.setDate(end.getDate()+7);const per={};let mins=0;
-  S.sessions.forEach(x=>{if(x.ts>=w0.getTime()&&x.ts<end.getTime()){const k=dk(x.ts);per[k]=(per[k]||0)+sxp(x);mins+=x.dur/60}});
+function weekFor(w0,s){const end=new Date(w0);end.setDate(end.getDate()+7);const per={};let mins=0,hasData=false;
+  S.sessions.forEach(x=>{if(x.ts>=w0.getTime()&&x.ts<end.getTime()){const k=dk(x.ts);per[k]=(per[k]||0)+sxp(x);mins+=x.dur/60;hasData=true}});
   let xp=0,days=0;Object.keys(per).forEach(k=>{xp+=Math.min(per[k],300)});
-  for(let i=0;i<7;i++){const d=new Date(w0);d.setDate(d.getDate()+i);if((s.days[dk(d)]||0)>=(S.minD||15)*60)days++}
-  return{xpWeek:xp+30*days,daysWeek:days,minWeek:Math.round(mins)}
+  for(let i=0;i<7;i++){const d=new Date(w0);d.setDate(d.getDate()+i);const sec=s.days[dk(d)]||0;if(sec>0)hasData=true;if(sec>=(S.minD||15)*60)days++}
+  return{xpWeek:xp+30*days,daysWeek:days,minWeek:Math.round(mins),hasData}
 }
 function weekMe(s){return weekFor(mon(),s)}
 function previousWeekMe(s){const w=new Date(mon());w.setDate(w.getDate()-7);return weekFor(w,s)}
@@ -371,13 +371,16 @@ function recapUI(s){
   <div class="rc-g">${[[dn+'/'+(S.goalDays||5),'ngày học đủ'],[L.length,'buổi học'],['+'+xp,'XP'],[af+' ★','tập trung TB'],[hm(lg),'buổi dài nhất'],[pn?Math.round(pc/pn*100)+'%':'–','bài làm đúng']].map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')}</div>
   ${rows}${ac.length?`<div class="rc-a">Thành tích mới: ${ac.map(a=>a[1]+' '+a[2]).join(' · ')}</div>`:''}
   <div class="rc-tip">${tip}</div>`}
-function summary(){const s=stats(),w=mon(),pw=new Date(w);pw.setDate(pw.getDate()-7);const prev=previousWeekMe(s);return Object.assign({name:(S.name||'Bạn').slice(0,30),streak:s.cur,xp:s.xp,level:Math.floor(Math.sqrt(s.xp/50))+1,week:dk(w),prevWeek:dk(pw),t:Date.now()},weekMe(s),{xpPrevWeek:prev.xpWeek,daysPrevWeek:prev.daysWeek,minPrevWeek:prev.minWeek})}
+function summary(){const s=stats(),w=mon(),pw=new Date(w);pw.setDate(pw.getDate()-7);const prev=previousWeekMe(s);return Object.assign({name:(S.name||'Bạn').slice(0,30),streak:s.cur,xp:s.xp,level:Math.floor(Math.sqrt(s.xp/50))+1,week:dk(w),prevWeek:dk(pw),t:Date.now()},weekMe(s),{xpPrevWeek:prev.xpWeek,daysPrevWeek:prev.daysWeek,minPrevWeek:prev.minWeek,prevWeekHasData:prev.hasData})}
 const pk=()=>JSON.stringify({sessions:S.sessions,ach:S.ach,del:S.del,goalD:S.goalD,goalW:S.goalW,pomo:S.pomo,rem:S.rem,minD:S.minD,goalDays:S.goalDays,rest:S.rest,subjects:S.subjects,goals:S.goals,room:S.room,name:S.name,su:S.su||0,ver:S.ver});
 // Chỉ đẩy dữ liệu lên sau khi đã nhận bản trên mạng lần đầu (cloudSynced), để máy mới không ghi đè dữ liệu cũ trên mạng
 function cPush(){if(!user||ro||!cloudSynced)return;clearTimeout(cpt);cpt=setTimeout(()=>cloud.setMine({j:pk(),u:Date.now()}).then(()=>{cstat='ok';cs()}).catch(()=>{cstat='err';cs()}),1500)}
 function pubSummary(){if(!user||ro||!S.room)return;clearTimeout(ppt);ppt=setTimeout(()=>cloud.setMember(S.room,summary()).catch(()=>{}),3000)}
 function cAdopt(d){if(ro)return;let o;try{o=JSON.parse(d.j)}catch(e){return}const b=sig(S),r0=S.room;merge(migrate(o));
-  if(sig(S)!==b){cache();render()}if(S.room!==r0)startRoom();if(sig(S)!==sig(o))cPush()}
+  if(sig(S)!==b){cache();render()}if(S.room!==r0)startRoom();if(sig(S)!==sig(o))cPush();
+  // Sau khi nhận dữ liệu học tập trên đám mây, phải tính và công bố lại tóm tắt phòng.
+  // Nếu không, bảng xếp hạng tuần trước có thể giữ số 0 từ trạng thái cục bộ trước khi đồng bộ.
+  pubSummary()}
 function cs(){const e=$('cs');if(e)e.textContent={ok:'✓ Đã đồng bộ',err:'⚠ Lỗi đồng bộ — dữ liệu vẫn lưu trên máy này'}[cstat]||''}
 function startRoom(){if(unR){unR();unR=null}peers=null;if(user&&S.room){pubSummary();unR=cloud.watchRoom(S.room,l=>{peers=l;render()})}}
 function cloudInit(){if(!window.cloud||!window.cloud.ready||cloudHooked)return;cloudHooked=true;
@@ -413,10 +416,10 @@ function raceUI(s){
       cls=['rr',i==0&&p.x>0?'lead':'',!pv?'ent':pv.rank>i+1?'up':pv.rank<i+1?'dn':''].join(' '),c=isMe?'var(--ac)':colOf(p.id),bg=isMe?'linear-gradient(90deg,var(--ac),var(--ac2))':c;
     racePrev[p.id]={pc,x:p.x,rank:i+1};
     return`<div class="${cls}" style="--i:${i}"><div class="rh"><span><span class="rk">${['🥇','🥈','🥉'][i]||(i+1)+'.'}</span><span class="rn">${esc(p.name||'?')}${isMe?' <small>(bạn)</small>':''} · Cấp ${p.level||1}</span></span><span class="rx"><b class="cu" data-from="${xf}" data-to="${p.x}" data-suf=" XP">${p.x} XP</b> · ${p.d}/7 ngày · 🔥${p.streak||0}</span></div><div class="trk"><i class="fill" style="--from:${from}%;--to:${pc}%;background:${bg}"></i><span class="av${isMe?' me':''}" style="--from:${from}%;--to:${pc}%;background:${c}">${i==0&&p.x>0?'<i class="crown">👑</i>':''}${esc([...(p.name||'?')][0].toUpperCase())}</span><span class="flag">🏁</span></div></div>`}).join('');
-  const prevDate=new Date(mon());prevDate.setDate(prevDate.getDate()-7);const prevKey=dk(prevDate),prevL=(peers||[]).map(p=>{const hasSavedPrev=p.prevWeek===prevKey;const isStillLastWeek=p.week===prevKey;return Object.assign({},p,{px:hasSavedPrev?(p.xpPrevWeek||0):(isStillLastWeek?(p.xpWeek||0):0),pd:hasSavedPrev?(p.daysPrevWeek||0):(isStillLastWeek?(p.daysWeek||0):0)})}).sort((a,b)=>b.px-a.px);
-  h+=`<div class="sub" style="margin-top:22px"><b>🏆 Xếp hạng tuần trước</b><small class="s">${prevKey}</small></div><small class="s">Tổng kết XP của tuần đã kết thúc; dữ liệu bạn bè phụ thuộc lần đồng bộ gần nhất của họ.</small>`;
+  const prevDate=new Date(mon());prevDate.setDate(prevDate.getDate()-7);const prevKey=dk(prevDate),prevL=(peers||[]).map(p=>{const hasSavedPrev=p.prevWeek===prevKey&&typeof p.xpPrevWeek==='number'&&p.prevWeekHasData===true;const isStillLastWeek=p.week===prevKey&&typeof p.xpWeek==='number';const known=hasSavedPrev||isStillLastWeek;return Object.assign({},p,{prevKnown:known,px:hasSavedPrev?p.xpPrevWeek:(isStillLastWeek?p.xpWeek:null),pd:hasSavedPrev?(p.daysPrevWeek||0):(isStillLastWeek?(p.daysWeek||0):null)})}).sort((a,b)=>{if(a.prevKnown!==b.prevKnown)return a.prevKnown?-1:1;return (b.px||0)-(a.px||0)});
+  h+=`<div class="sub" style="margin-top:22px"><b>🏆 Xếp hạng tuần trước</b><small class="s">${prevKey}</small></div><small class="s">Điểm được tính từ dữ liệu tuần đã kết thúc. Thành viên cần mở bản cập nhật ít nhất một lần để đồng bộ kết quả; dữ liệu lịch sử chưa được lưu sẽ không thể tự khôi phục.</small>`;
   if(!prevL.length)h+='<div class="empty">Chưa có dữ liệu xếp hạng tuần trước.</div>';
-  else h+=prevL.map((p,i)=>`<div class="rh" style="padding:10px 0;border-bottom:1px solid var(--bd)"><span><span class="rk">${['🥇','🥈','🥉'][i]||(i+1)+'.'}</span><span class="rn">${esc(p.name||'?')}${p.id==user.uid?' <small>(bạn)</small>':''} · Cấp ${p.level||1}</span></span><span class="rx"><b>${p.px} XP</b> · ${p.pd}/7 ngày</span></div>`).join('');
+  else h+=prevL.map((p,i)=>`<div class="rh" style="padding:10px 0;border-bottom:1px solid var(--bd)"><span><span class="rk">${p.prevKnown?(['🥇','🥈','🥉'][i]||(i+1)+'.'):'—'}</span><span class="rn">${esc(p.name||'?')}${p.id==user.uid?' <small>(bạn)</small>':''} · Cấp ${p.level||1}</span></span><span class="rx"><b>${p.prevKnown?p.px+' XP':'Chưa đồng bộ'}</b>${p.prevKnown?' · '+p.pd+'/7 ngày':''}</span></div>`).join('');
   return h+tail}
 // Hiệu ứng sau khi vẽ bảng đua: số XP chạy từ giá trị cũ lên giá trị mới, pháo giấy khi bạn vượt lên. Chỉ chạy khi hiệu ứng đang bật.
 function raceFx(){try{if(!document.body.classList.contains('fx'))return;
