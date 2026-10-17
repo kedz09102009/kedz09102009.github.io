@@ -183,7 +183,7 @@ input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shado
 @keyframes updglow{50%{box-shadow:0 12px 34px rgba(0,0,0,.4),0 0 0 6px color-mix(in srgb,var(--ac) 30%,transparent)}}
 
 /* Số phiên bản của giao diện. PHẢI trùng với BUILD trong app.js, nếu không phần mềm sẽ báo "trang đã cũ". */
-:root{--css-build:"2026-10-17-original-ui-8"}
+:root{--css-build:"2026-10-17-original-ui-9"}
 
 /* ===== Tổng kết tuần trước ===== */
 .rc-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}.rc-h b{font-size:30px;letter-spacing:-.02em;color:var(--ac)}
@@ -193,3 +193,12 @@ input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shado
 .rc-a{margin:12px 0 0;font-size:14px}
 .rc-tip{margin-top:12px;padding:12px 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--ly) 55%,transparent);background:color-mix(in srgb,var(--ly) 12%,transparent);font-size:14px}
 @media (max-width:420px){.rc-g{grid-template-columns:repeat(2,1fr)}}
+
+
+/* ===== Fix: tiêu đề mục tiêu dài (URL, chuỗi không có khoảng trắng) ===== */
+.goal{min-width:0;max-width:100%;box-sizing:border-box}
+.gh{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-width:0;max-width:100%}
+.gh>b{display:block;flex:1 1 0;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+.gh>span{display:flex;align-items:flex-start;justify-content:flex-end;gap:4px;flex:0 0 auto;white-space:nowrap}
+.gh>span .x{flex:0 0 auto;padding:2px 3px}
+@media(max-width:420px){.gh{gap:8px}.gh>span{gap:2px}}
