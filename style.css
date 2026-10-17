@@ -183,7 +183,7 @@ input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shado
 @keyframes updglow{50%{box-shadow:0 12px 34px rgba(0,0,0,.4),0 0 0 6px color-mix(in srgb,var(--ac) 30%,transparent)}}
 
 /* Số phiên bản của giao diện. PHẢI trùng với BUILD trong app.js, nếu không phần mềm sẽ báo "trang đã cũ". */
-:root{--css-build:"2026-10-17-game-4"}
+:root{--css-build:"2026-10-17-game-5-mobile-fix"}
 
 /* ===== Tổng kết tuần trước ===== */
 .rc-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}.rc-h b{font-size:30px;letter-spacing:-.02em;color:var(--ac)}
@@ -319,3 +319,66 @@ body.game-ui .week-panel .chart{max-height:260px}
  body.game-ui .app-footer{font-size:10px}
 }
 @media(prefers-reduced-motion:reduce){body.game-ui *,body.game-ui *::before,body.game-ui *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+
+/* ===== MOBILE LAYOUT HOTFIX · v5 =====
+   Keep the dashboard full-width on phones/tablets even if the browser requests a desktop layout viewport.
+   Prevent long goal titles/URLs and flex/grid children from forcing a narrow page or horizontal overflow. */
+html, body { width:100%; max-width:100%; }
+body.game-ui { overflow-x:hidden; }
+body.game-ui main { width:100%; max-width:1320px; min-width:0; }
+body.game-ui .dashboard,
+body.game-ui .panel,
+body.game-ui .card,
+body.game-ui #goals,
+body.game-ui #gf,
+body.game-ui #race,
+body.game-ui #hist,
+body.game-ui #set { min-width:0; max-width:100%; }
+body.game-ui .dashboard { width:100%; }
+body.game-ui .goal { min-width:0; max-width:100%; }
+body.game-ui .gh { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:8px; min-width:0; }
+body.game-ui .gh > b { display:block; min-width:0; max-width:100%; overflow-wrap:anywhere; word-break:break-word; }
+body.game-ui .gh > span { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:4px; min-width:0; }
+body.game-ui .gh .x { padding:4px 6px; white-space:nowrap; }
+body.game-ui .goal small,
+body.game-ui .goal .sub,
+body.game-ui .goal .tk,
+body.game-ui #goals * { min-width:0; }
+body.game-ui #goals { overflow-wrap:anywhere; }
+body.game-ui img, body.game-ui svg, body.game-ui canvas { max-width:100%; }
+body.game-ui input, body.game-ui select, body.game-ui textarea, body.game-ui button { max-width:100%; }
+
+@media (max-width:900px), (hover:none) and (pointer:coarse) {
+  body.game-ui { width:100%; min-width:0; }
+  body.game-ui main { width:100vw !important; max-width:none !important; min-width:0; margin:0; padding:12px; padding-bottom:calc(30px + env(safe-area-inset-bottom,0px)); }
+  body.game-ui .dashboard {
+    display:grid;
+    width:100%;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-areas:"focus" "stats" "recap" "week" "goals" "race" "level" "subject" "activity" "calendar" "achievements" "settings" "history";
+    gap:16px;
+  }
+  body.game-ui .panel { width:100%; max-width:100%; grid-column:1 / -1; }
+  body.game-ui .app-top { min-width:0; width:100%; }
+  body.game-ui .brand-copy { overflow-wrap:anywhere; }
+  body.game-ui .quick-nav { width:100%; max-width:100%; box-sizing:border-box; }
+  body.game-ui .panel-head { min-width:0; flex-wrap:wrap; }
+  body.game-ui .panel-head > div { min-width:0; }
+  body.game-ui .panel-head .btn { white-space:normal; }
+  body.game-ui .h .m { min-width:0; overflow-wrap:anywhere; }
+  body.game-ui .in { min-width:0; }
+  body.game-ui .in input[type=text],
+  body.game-ui .in input[type=number],
+  body.game-ui .in select,
+  body.game-ui textarea { min-width:0; }
+  body.game-ui .row { min-width:0; }
+  body.game-ui #upd { left:12px; right:12px; width:auto; max-width:none; transform:none; }
+}
+@media (max-width:380px) {
+  body.game-ui main { padding:9px; }
+  body.game-ui .card { padding:12px; }
+  body.game-ui .gh { grid-template-columns:minmax(0,1fr); }
+  body.game-ui .gh > span { justify-content:flex-start; }
+  body.game-ui .rc-g { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}

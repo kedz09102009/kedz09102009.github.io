@@ -1,0 +1,16 @@
+NHAT KY HOC TAP — BAN SUA GIAO DIEN DIEN THOAI V5
+
+Loi sua chinh:
+- Buoc main/dashboard chiem het chieu rong viewport tren dien thoai va thiet bi cam ung, ke ca khi trinh duyet dung desktop viewport.
+- Chuyen dashboard thanh mot cot tren thiet bi nho/cam ung.
+- Cho phep tieu de muc tieu dai (bao gom URL) xuong dong; nut Sua/Xoa khong con bi day ra ngoai man hinh.
+- Dong bo BUILD giua app.js va style.css; tang cache version cua Service Worker.
+
+Cach cap nhat:
+1. Sao luu thu muc hien tai truoc khi thay the.
+2. Giai nen ZIP va cap nhat dong thoi index.html, style.css, app.js, sw.js, cloud.js, config.js, manifest.webmanifest va icon-192.png/icon-512.png vao cung mot thu muc website.
+3. Neu config.js tren may chu la cau hinh Firebase dang dung cua ban, hay giu nguyen cau hinh do thay vi thay bang mot du an Firebase khac.
+4. Mo lai website tren dien thoai va may tinh. Neu dung PWA, dong tat ca cua so ung dung, mo lai website de worker moi duoc cap nhat.
+
+Kiem tra ma: node --check app.js, node --check cloud.js, node --check sw.js.
+Kiem tra hinh anh da gui: cac tieu de dai va nut chuc nang trong danh sach muc tieu co the lam tran khoi khoi. Ban nay them quy tac wrap va buoc layout mobile ve mot cot.
