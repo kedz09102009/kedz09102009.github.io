@@ -183,7 +183,7 @@ input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shado
 @keyframes updglow{50%{box-shadow:0 12px 34px rgba(0,0,0,.4),0 0 0 6px color-mix(in srgb,var(--ac) 30%,transparent)}}
 
 /* Số phiên bản của giao diện. PHẢI trùng với BUILD trong app.js, nếu không phần mềm sẽ báo "trang đã cũ". */
-:root{--css-build:"2026-10-17-game-5-mobile-fix"}
+:root{--css-build:"2026-10-17-game-5"}
 
 /* ===== Tổng kết tuần trước ===== */
 .rc-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}.rc-h b{font-size:30px;letter-spacing:-.02em;color:var(--ac)}
@@ -219,13 +219,11 @@ body.game-ui h1{font-size:clamp(25px,3vw,34px);line-height:1.15;letter-spacing:-
 body.game-ui .tagline{margin:0;color:var(--mut);font-size:13px}
 body.game-ui .top-status{display:flex;align-items:center;gap:9px;white-space:nowrap;padding:10px 13px;border:1px solid var(--bd);border-radius:999px;background:rgba(16,26,47,.72);font-size:12px;color:#cbd6f3}
 body.game-ui .status-orb{width:8px;height:8px;border-radius:100%;background:var(--ac2);box-shadow:0 0 0 4px color-mix(in srgb,var(--ac2) 15%,transparent),0 0 14px var(--ac2)}
-body.game-ui .quick-nav{position:sticky;top:8px;z-index:15;display:flex;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;margin:0 0 22px;padding:8px;border:1px solid rgba(128,149,194,.18);border-radius:17px;background:rgba(10,16,32,.84);backdrop-filter:blur(18px);box-shadow:0 8px 30px rgba(0,0,0,.18)}
-body.game-ui .quick-nav::-webkit-scrollbar{display:none}
-body.game-ui .quick-nav a{display:inline-flex;align-items:center;gap:7px;flex:none;padding:9px 13px;border-radius:11px;text-decoration:none;color:var(--mut);font-size:12px;font-weight:700;transition:background .18s,color .18s}
-body.game-ui .quick-nav a:hover,body.game-ui .quick-nav a:focus-visible{color:var(--tx);background:color-mix(in srgb,var(--ac) 17%,transparent);outline:none}
-body.game-ui .dashboard{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);grid-template-areas:"focus stats" "focus recap" "week week" "goals goals" "race race" "level subject" "activity calendar" "achievements achievements" "settings settings" "history history";gap:20px;align-items:start}
-body.game-ui .panel{min-width:0;scroll-margin-top:95px}
-body.game-ui #focus-panel{grid-area:focus}body.game-ui #stats-panel{grid-area:stats}body.game-ui #recap-panel{grid-area:recap}body.game-ui #week-panel{grid-area:week}body.game-ui #goals-panel{grid-area:goals}body.game-ui #race-panel{grid-area:race}body.game-ui #level-panel{grid-area:level}body.game-ui #subject-panel{grid-area:subject}body.game-ui #activity-panel{grid-area:activity}body.game-ui #calendar-panel{grid-area:calendar}body.game-ui #achievements-panel{grid-area:achievements}body.game-ui #settings-panel{grid-area:settings}body.game-ui #history-panel{grid-area:history}
+body.game-ui .dashboard{display:flex;flex-direction:column;gap:20px;min-width:0}
+body.game-ui .overview-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:20px;align-items:start;min-width:0}
+body.game-ui .overview-column,body.game-ui .secondary-column{display:flex;flex-direction:column;gap:20px;min-width:0}
+body.game-ui .secondary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start;min-width:0}
+body.game-ui .panel{min-width:0;scroll-margin-top:24px}
 body.game-ui h2{display:flex;align-items:center;gap:8px;font-size:14px;line-height:1.4;letter-spacing:.015em;text-transform:none;color:#e2eaff;margin:9px 0 12px}
 body.game-ui h2::before{content:none}
 body.game-ui .panel-kicker{margin:0 0 4px;color:var(--mut);letter-spacing:.17em}
@@ -286,7 +284,19 @@ body.game-ui .a.lock .ic{opacity:.6;filter:grayscale(1)}
 body.game-ui #timer .stars button.on{color:#ffd166;text-shadow:0 0 10px rgba(255,209,102,.2)}
 body.game-ui .week-panel .chart{max-height:260px}
 @media(max-width:900px){
- body.game-ui .dashboard{grid-template-columns:minmax(0,1fr);grid-template-areas:"focus" "stats" "recap" "week" "goals" "race" "level" "subject" "activity" "calendar" "achievements" "settings" "history";gap:17px}
+ body.game-ui .overview-grid{grid-template-columns:minmax(0,1fr);gap:17px}
+ body.game-ui .overview-column{display:contents}
+ body.game-ui .overview-grid{display:grid;grid-template-columns:minmax(0,1fr)}
+ body.game-ui #focus-panel{order:1}
+ body.game-ui #stats-panel{order:2}
+ body.game-ui #week-panel{order:3}
+ body.game-ui #recap-panel{order:4}
+ body.game-ui .secondary-grid{grid-template-columns:minmax(0,1fr);gap:17px}
+ body.game-ui .secondary-column{display:contents}
+ body.game-ui #level-panel{order:1}
+ body.game-ui #subject-panel{order:2}
+ body.game-ui #activity-panel{order:3}
+ body.game-ui #calendar-panel{order:4}
  body.game-ui .app-top{align-items:flex-start}
  body.game-ui .top-status{font-size:0;padding:10px}
  body.game-ui .top-status .status-orb{width:9px;height:9px}
@@ -300,8 +310,6 @@ body.game-ui .week-panel .chart{max-height:260px}
  body.game-ui h1{font-size:24px}
  body.game-ui .tagline{font-size:11px}
  body.game-ui .top-status{display:none}
- body.game-ui .quick-nav{top:4px;margin-bottom:16px;padding:5px;border-radius:13px;gap:3px}
- body.game-ui .quick-nav a{padding:9px 10px;font-size:11px}
  body.game-ui .card{padding:14px;border-radius:17px}
  body.game-ui .ring{width:190px;height:190px}
  body.game-ui .inr{width:164px;height:164px}
@@ -320,65 +328,29 @@ body.game-ui .week-panel .chart{max-height:260px}
 }
 @media(prefers-reduced-motion:reduce){body.game-ui *,body.game-ui *::before,body.game-ui *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
-
-/* ===== MOBILE LAYOUT HOTFIX · v5 =====
-   Keep the dashboard full-width on phones/tablets even if the browser requests a desktop layout viewport.
-   Prevent long goal titles/URLs and flex/grid children from forcing a narrow page or horizontal overflow. */
-html, body { width:100%; max-width:100%; }
-body.game-ui { overflow-x:hidden; }
-body.game-ui main { width:100%; max-width:1320px; min-width:0; }
-body.game-ui .dashboard,
-body.game-ui .panel,
-body.game-ui .card,
-body.game-ui #goals,
-body.game-ui #gf,
-body.game-ui #race,
-body.game-ui #hist,
-body.game-ui #set { min-width:0; max-width:100%; }
-body.game-ui .dashboard { width:100%; }
-body.game-ui .goal { min-width:0; max-width:100%; }
-body.game-ui .gh { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:8px; min-width:0; }
-body.game-ui .gh > b { display:block; min-width:0; max-width:100%; overflow-wrap:anywhere; word-break:break-word; }
-body.game-ui .gh > span { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:4px; min-width:0; }
-body.game-ui .gh .x { padding:4px 6px; white-space:nowrap; }
-body.game-ui .goal small,
-body.game-ui .goal .sub,
-body.game-ui .goal .tk,
-body.game-ui #goals * { min-width:0; }
-body.game-ui #goals { overflow-wrap:anywhere; }
-body.game-ui img, body.game-ui svg, body.game-ui canvas { max-width:100%; }
-body.game-ui input, body.game-ui select, body.game-ui textarea, body.game-ui button { max-width:100%; }
-
-@media (max-width:900px), (hover:none) and (pointer:coarse) {
-  body.game-ui { width:100%; min-width:0; }
-  body.game-ui main { width:100vw !important; max-width:none !important; min-width:0; margin:0; padding:12px; padding-bottom:calc(30px + env(safe-area-inset-bottom,0px)); }
-  body.game-ui .dashboard {
-    display:grid;
-    width:100%;
-    grid-template-columns:minmax(0,1fr);
-    grid-template-areas:"focus" "stats" "recap" "week" "goals" "race" "level" "subject" "activity" "calendar" "achievements" "settings" "history";
-    gap:16px;
-  }
-  body.game-ui .panel { width:100%; max-width:100%; grid-column:1 / -1; }
-  body.game-ui .app-top { min-width:0; width:100%; }
-  body.game-ui .brand-copy { overflow-wrap:anywhere; }
-  body.game-ui .quick-nav { width:100%; max-width:100%; box-sizing:border-box; }
-  body.game-ui .panel-head { min-width:0; flex-wrap:wrap; }
-  body.game-ui .panel-head > div { min-width:0; }
-  body.game-ui .panel-head .btn { white-space:normal; }
-  body.game-ui .h .m { min-width:0; overflow-wrap:anywhere; }
-  body.game-ui .in { min-width:0; }
-  body.game-ui .in input[type=text],
-  body.game-ui .in input[type=number],
-  body.game-ui .in select,
-  body.game-ui textarea { min-width:0; }
-  body.game-ui .row { min-width:0; }
-  body.game-ui #upd { left:12px; right:12px; width:auto; max-width:none; transform:none; }
-}
-@media (max-width:380px) {
-  body.game-ui main { padding:9px; }
-  body.game-ui .card { padding:12px; }
-  body.game-ui .gh { grid-template-columns:minmax(0,1fr); }
-  body.game-ui .gh > span { justify-content:flex-start; }
-  body.game-ui .rc-g { grid-template-columns:repeat(2,minmax(0,1fr)); }
+/* ===== Layout refinement: remove navigation and reduce unused horizontal/vertical space ===== */
+body.game-ui .app-top{margin-bottom:14px}
+body.game-ui .dashboard{gap:16px}
+body.game-ui .overview-grid,body.game-ui .secondary-grid{gap:16px}
+body.game-ui .overview-column,body.game-ui .secondary-column{gap:16px}
+body.game-ui .goal{min-width:0}
+body.game-ui .gh{gap:8px;align-items:flex-start;min-width:0}
+body.game-ui .gh>b{min-width:0;overflow-wrap:anywhere;word-break:break-word}
+body.game-ui .gh>span{display:flex;flex:none;gap:4px}
+body.game-ui .goal .sub{align-items:flex-start;flex-wrap:wrap;gap:4px 10px}
+body.game-ui .goal .sub>span:first-child{min-width:0;overflow-wrap:anywhere}
+body.game-ui .goal .sub>span:last-child{white-space:nowrap}
+body.game-ui .panel,body.game-ui .card,body.game-ui #gf,body.game-ui #goals,body.game-ui #race,body.game-ui #hist{min-width:0;max-width:100%;box-sizing:border-box}
+body.game-ui img,body.game-ui svg,body.game-ui canvas{max-width:100%}
+@media(max-width:520px){
+ body.game-ui .dashboard,body.game-ui .overview-grid,body.game-ui .secondary-grid{gap:14px}
+ body.game-ui .overview-column,body.game-ui .secondary-column{gap:14px}
+ body.game-ui .card{padding:13px;border-radius:15px}
+ body.game-ui .panel-head{gap:8px}
+ body.game-ui .panel-head h2{font-size:13px}
+ body.game-ui .goal .gh{flex-wrap:wrap}
+ body.game-ui .goal .gh>span{margin-left:auto}
+ body.game-ui .goal .sub>span:first-child{flex:1 1 55%;}
+ body.game-ui .goal .sub>span:last-child{flex:0 0 auto;text-align:right}
+ body.game-ui .top-status{display:none}
 }
