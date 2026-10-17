@@ -1,6 +1,6 @@
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
-const BUILD='2026-10-17-classic-6'; // số phiên bản của mã chương trình. Mỗi lần phát hành bản mới phải đổi số này để các máy đang mở bản cũ biết mà báo tải lại
+const BUILD='2026-10-17-original-ui-8'; // số phiên bản của mã chương trình. Mỗi lần phát hành bản mới phải đổi số này để các máy đang mở bản cũ biết mà báo tải lại
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
 const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.subjects bằng rebuildSubj(). Thêm/đổi tên/đổi màu/ẩn môn ngay trong phần Cài đặt.
 // ===== 2. DỮ LIỆU (biến S) =====

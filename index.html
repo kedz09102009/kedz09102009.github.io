@@ -3,110 +3,41 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#2f6f5e">
-<meta name="color-scheme" content="light dark">
 <title>Nhật ký học tập</title>
-<link rel="stylesheet" href="style.css?v=2026-10-17-classic-6">
+<link rel="stylesheet" href="style.css?v=2026-10-17-original-ui-8">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 </head>
-<body class="game-ui">
-<main>
-  <h1 class="page-title">📖 Nhật ký học tập</h1>
 
-  <div class="dashboard">
-    <div class="overview-grid">
-      <div class="overview-column overview-left">
-  <section class="panel" id="focus-panel">
-      <div class="panel-kicker">01 / TẬP TRUNG</div>
-      <h2>⚡ Khu vực tập trung</h2>
-      <div class="card" id="hab" style="margin-bottom:12px"></div>
-      <div class="card" id="timer"></div>
-    </section>
-  <section class="panel" id="week-panel">
-      <div class="panel-kicker">03 / NHỊP ĐỘ</div>
-      <h2>📈 Thời gian học</h2>
-      <div class="card" id="week"></div>
-    </section>
-      </div>
-      <div class="overview-column overview-right">
-  <section class="panel" id="stats-panel">
-      <div class="panel-kicker">02 / TIẾN ĐỘ</div>
-      <h2>📊 Tổng quan</h2>
-      <div class="grid4" id="stats"></div>
-    </section>
-  <section class="panel" id="recap-panel">
-      <div class="panel-kicker">04 / NHÌN LẠI</div>
-      <h2>🗓️ Tổng kết tuần trước</h2>
-      <div class="card" id="recap"></div>
-    </section>
-      </div>
-    </div>
-  <section class="panel" id="goals-panel">
-      <div class="panel-head">
-        <div><div class="panel-kicker">05 / NHIỆM VỤ</div><h2>🎯 Mục tiêu và nhiệm vụ</h2></div>
-        <button class="btn g" onclick="openGoal(0)">＋ Thêm mục tiêu</button>
-      </div>
-      <div id="gf"></div>
-      <div class="card" id="goals"></div>
-    </section>
-  <section class="panel" id="race-panel">
-      <div class="panel-head">
-        <div><div class="panel-kicker">06 / ĐẤU TRƯỜNG</div><h2>🏆 Chạy đua cùng bạn bè</h2></div>
-        <span class="mode-pill">WEEKLY QUEST</span>
-      </div>
-      <div class="card" id="race"></div>
-    </section>
-    <div class="secondary-grid">
-      <div class="secondary-column secondary-left">
-  <section class="panel" id="level-panel">
-      <div class="panel-kicker">07 / THĂNG CẤP</div>
-      <h2>✨ Cấp độ và mục tiêu ngày/tuần</h2>
-      <div class="card" id="lvl"></div>
-    </section>
-  <section class="panel" id="activity-panel">
-      <div class="panel-kicker">09 / LUYỆN TẬP</div>
-      <h2>🧩 Loại hoạt động và bài tập</h2>
-      <div class="card" id="act"></div>
-    </section>
-      </div>
-      <div class="secondary-column secondary-right">
-  <section class="panel" id="subject-panel">
-      <div class="panel-kicker">08 / KỸ NĂNG</div>
-      <h2>📚 Theo môn</h2>
-      <div class="card" id="subj"></div>
-    </section>
-  <section class="panel" id="calendar-panel">
-      <div class="panel-kicker">10 / LỊCH SỬ</div>
-      <h2>🗓️ Lịch học</h2>
-      <div class="card" id="cal"></div>
-    </section>
-      </div>
-    </div>
-  <section class="panel" id="achievements-panel">
-      <div class="panel-kicker">11 / HUY HIỆU</div>
-      <h2 id="achT">🎖️ Thành tích</h2>
-      <div class="ach" id="ach"></div>
-    </section>
-  <section class="panel" id="settings-panel">
-      <div class="panel-kicker">12 / CẤU HÌNH</div>
-      <h2>⚙️ Cài đặt và dữ liệu</h2>
-      <div class="card" id="set"></div>
-    </section>
-  <section class="panel" id="history-panel">
-      <div class="panel-head">
-        <div><div class="panel-kicker">13 / NHẬT KÝ</div><h2>📜 Lịch sử học tập</h2></div>
-        <button class="btn g" onclick="openEd(0)">＋ Thêm buổi học thủ công</button>
-      </div>
-      <div id="ed"></div>
-      <div class="card" id="hist"></div>
-    </section>
-  </div>
+<body>
+<main>
+<h1>📖 Nhật ký học tập</h1>
+<div class="card" id="hab" style="margin-bottom:12px"></div>
+<div class="card" id="timer"></div>
+<h2>Tổng quan</h2>
+<div class="grid4" id="stats"></div>
+<h2>Tổng kết tuần trước</h2>
+<div class="card" id="recap"></div>
+<h2>Thời gian học</h2>
+<div class="card" id="week"></div>
+<h2>Mục tiêu và nhiệm vụ</h2>
+<button class="btn g" style="margin-bottom:10px" onclick="openGoal(0)">＋ Thêm mục tiêu</button><div id="gf"></div>
+<div class="card" id="goals"></div>
+<h2>Chạy đua cùng bạn bè</h2><div class="card" id="race"></div>
+<h2>Cấp độ và mục tiêu ngày/tuần</h2><div class="card" id="lvl"></div>
+<h2>Theo môn</h2><div class="card" id="subj"></div>
+<h2>Loại hoạt động & bài tập</h2><div class="card" id="act"></div>
+<h2>Lịch học</h2><div class="card" id="cal"></div>
+<h2 id="achT">Thành tích</h2>
+<div class="ach" id="ach"></div>
+<h2>Cài đặt & dữ liệu</h2><div class="card" id="set"></div>
+<h2>Lịch sử</h2><button class="btn g" style="margin-bottom:10px" onclick="openEd(0)">＋ Thêm buổi học thủ công</button><div id="ed"></div>
+<div class="card" id="hist"></div>
 </main>
-<div id="toast" role="status" aria-live="polite"></div>
+<div id="toast"></div>
 <script type="module" src="config.js"></script>
-<script src="app.js?v=2026-10-17-classic-6"></script>
+<script src="app.js?v=2026-10-17-original-ui-8"></script>
 <script type="module" src="cloud.js"></script>
 </body>
 </html>

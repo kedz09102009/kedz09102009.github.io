@@ -1,5 +1,5 @@
 // Service worker: cache-first for fast/offline loading. All core assets are cached as one release.
-const C='nhatky-v11-classic-6';
+const C='nhatky-v13-original-ui-8';
 const CORE=['index.html','style.css','app.js','config.js','cloud.js','manifest.webmanifest'];
 const OPTIONAL=['./','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil((async()=>{
