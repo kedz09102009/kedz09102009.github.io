@@ -183,7 +183,7 @@ input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shado
 @keyframes updglow{50%{box-shadow:0 12px 34px rgba(0,0,0,.4),0 0 0 6px color-mix(in srgb,var(--ac) 30%,transparent)}}
 
 /* Số phiên bản của giao diện. PHẢI trùng với BUILD trong app.js, nếu không phần mềm sẽ báo "trang đã cũ". */
-:root{--css-build:"2026-10-17-game-5"}
+:root{--css-build:"2026-10-17-classic-6"}
 
 /* ===== Tổng kết tuần trước ===== */
 .rc-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}.rc-h b{font-size:30px;letter-spacing:-.02em;color:var(--ac)}
@@ -353,4 +353,79 @@ body.game-ui img,body.game-ui svg,body.game-ui canvas{max-width:100%}
  body.game-ui .goal .sub>span:first-child{flex:1 1 55%;}
  body.game-ui .goal .sub>span:last-child{flex:0 0 auto;text-align:right}
  body.game-ui .top-status{display:none}
+}
+
+
+/* ===== Classic clean theme: simple heading, lighter typography and flat surfaces ===== */
+body.game-ui {
+  color-scheme: light;
+  --bg:#f6f5f1; --card:#fff; --tx:#1f2328; --mut:#6b7280; --bd:#e5e2d9;
+  --ac:#2f6f5e; --ac2:#37a88f; --acx:#fff; --ly:#d9822b;
+  --sh:0 1px 4px rgba(30,50,40,.05); --ba:0;
+  background:var(--bg); color:var(--tx); min-height:100vh;
+}
+@media (prefers-color-scheme:dark) {
+  body.game-ui:not(.th-violet):not(.th-rose):not(.th-sunset):not(.th-ocean):not(.th-multi) {
+    color-scheme:dark;
+    --bg:#15181a; --card:#1f2326; --tx:#e8eaec; --mut:#9aa3ab; --bd:#30363a;
+    --ac:#5fb59c; --ac2:#7be5c2; --acx:#10201b; --ly:#f0a95c;
+    --sh:0 1px 4px rgba(0,0,0,.12);
+    background:var(--bg); color:var(--tx);
+  }
+}
+body.game-ui main { padding-top:16px; }
+body.game-ui #bg { display:none !important; }
+body.game-ui .page-title {
+  display:block; margin:0 0 16px; padding:0; font-size:23px; line-height:1.35;
+  letter-spacing:0; font-weight:500; color:var(--tx); background:none;
+  -webkit-background-clip:border-box; background-clip:border-box;
+}
+body.game-ui .dashboard { gap:18px; }
+body.game-ui .overview-grid, body.game-ui .secondary-grid { gap:16px; }
+body.game-ui .overview-column, body.game-ui .secondary-column { gap:16px; }
+body.game-ui h2 { font-weight:600; color:var(--tx); font-size:15px; letter-spacing:0; }
+body.game-ui .panel-kicker { font-size:10px; font-weight:500; letter-spacing:.09em; color:var(--mut); }
+body.game-ui .card, body.game-ui .stat, body.game-ui .a {
+  background:var(--card); border:1px solid var(--bd); border-radius:14px; box-shadow:none;
+}
+body.game-ui .card { padding:16px; }
+body.game-ui .stat { padding:12px 8px; }
+body.game-ui .stat::before { display:none; }
+body.game-ui .stat b { font-size:19px; font-weight:600; line-height:1.35; }
+body.game-ui .stat span { font-weight:400; }
+body.game-ui b, body.game-ui strong { font-weight:600; }
+body.game-ui .btn { background:var(--ac); color:var(--acx); border:0; border-radius:10px; font-weight:500; box-shadow:none; }
+body.game-ui .btn.g { background:transparent; color:var(--tx); border:1px solid var(--bd); box-shadow:none; }
+body.game-ui .chip { background:transparent; border:1px solid var(--bd); color:var(--tx); }
+body.game-ui .chip.on, body.game-ui .chip.t.on { background:var(--ac); color:var(--acx); border-color:var(--ac); font-weight:600; box-shadow:none; }
+body.game-ui .mode-pill { font-weight:500; letter-spacing:.04em; color:var(--ac); background:transparent; border-color:var(--bd); }
+body.game-ui .clock { font-weight:600; letter-spacing:0; }
+body.game-ui .bar { background:var(--bd); box-shadow:none; }
+body.game-ui .bar i { background:var(--ac) !important; box-shadow:none; }
+body.game-ui .dots .dt { background:color-mix(in srgb,var(--bd) 40%,var(--card)); color:var(--mut); }
+body.game-ui .dots .dt.on { background:var(--ac); color:var(--acx); font-weight:500; }
+body.game-ui .a:not(.lock) { outline:none; }
+body.game-ui .a.lock { background:var(--card); border-color:var(--bd); }
+body.game-ui input[type=text], body.game-ui input[type=number], body.game-ui input[type=date],
+body.game-ui input[type=time], body.game-ui input[type=color], body.game-ui .in select,
+body.game-ui textarea { background:var(--card); color:var(--tx); border:1px solid var(--bd); border-radius:9px; }
+body.game-ui .fill { box-shadow:none; }
+body.game-ui .trk { background:linear-gradient(var(--bd),var(--bd)) center/100% 10px no-repeat; }
+body.game-ui .av { border:2px solid var(--card); font-weight:600; box-shadow:none; }
+body.game-ui .rbanner { border:1px solid var(--bd); background:color-mix(in srgb,var(--ac) 8%,var(--card)); border-radius:10px; }
+body.game-ui .rc-g div { background:color-mix(in srgb,var(--tx) 4%,var(--card)); border:1px solid var(--bd); }
+body.game-ui .rc-tip { border-color:color-mix(in srgb,var(--ly) 45%,var(--bd)); background:color-mix(in srgb,var(--ly) 8%,var(--card)); }
+body.game-ui .cd { background:var(--card); border:1px solid var(--bd); }
+body.game-ui .cd.l1 { background:color-mix(in srgb,var(--ac) 15%,var(--card)); }
+body.game-ui .cd.l2 { background:color-mix(in srgb,var(--ac) 30%,var(--card)); }
+body.game-ui .cd.l3 { background:color-mix(in srgb,var(--ac) 50%,var(--card)); }
+body.game-ui .cd.l4 { background:var(--ac); color:var(--acx); }
+body.game-ui .seg { background:color-mix(in srgb,var(--bd) 25%,var(--card)); border:1px solid var(--bd); }
+body.game-ui .seg button.on { color:var(--tx); }
+body.game-ui .lv b { background:none; color:var(--tx); -webkit-background-clip:border-box; background-clip:border-box; font-weight:600; }
+body.game-ui .app-footer { display:none; }
+@media(max-width:520px) {
+  body.game-ui main { padding:12px; padding-bottom:calc(28px + env(safe-area-inset-bottom,0px)); }
+  body.game-ui .page-title { font-size:22px; margin-bottom:12px; font-weight:500; }
+  body.game-ui .card { padding:13px; border-radius:12px; }
 }
