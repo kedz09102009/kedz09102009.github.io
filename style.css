@@ -183,7 +183,7 @@ input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shado
 @keyframes updglow{50%{box-shadow:0 12px 34px rgba(0,0,0,.4),0 0 0 6px color-mix(in srgb,var(--ac) 30%,transparent)}}
 
 /* Số phiên bản của giao diện. PHẢI trùng với BUILD trong app.js, nếu không phần mềm sẽ báo "trang đã cũ". */
-:root{--css-build:"2026-10-17-3"}
+:root{--css-build:"2026-10-17-game-4"}
 
 /* ===== Tổng kết tuần trước ===== */
 .rc-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}.rc-h b{font-size:30px;letter-spacing:-.02em;color:var(--ac)}
@@ -193,3 +193,129 @@ input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shado
 .rc-a{margin:12px 0 0;font-size:14px}
 .rc-tip{margin-top:12px;padding:12px 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--ly) 55%,transparent);background:color-mix(in srgb,var(--ly) 12%,transparent);font-size:14px}
 @media (max-width:420px){.rc-g{grid-template-columns:repeat(2,1fr)}}
+
+
+/* ===== STUDY QUEST UI · Responsive, game-inspired layer ===== */
+body.game-ui{
+  color-scheme:dark;
+  --bg:#0a1020;--card:#111a2d;--tx:#f0f4ff;--mut:#9aa9c8;--bd:#293653;
+  --ac:#9b7bff;--ac2:#45e0d0;--acx:#0b1020;--ly:#ffb454;
+  --sh:0 14px 36px rgba(0,0,0,.24);--ba:.25;
+  background:radial-gradient(ellipse at 10% 0%,rgba(111,70,220,.18),transparent 34rem),radial-gradient(ellipse at 95% 26%,rgba(33,191,174,.13),transparent 34rem),var(--bg);
+  color:var(--tx);min-height:100vh;
+}
+body.game-ui.th-violet{--ac:#a98bff;--ac2:#ff7cd8}
+body.game-ui.th-rose{--ac:#ff76a5;--ac2:#ffc06f}
+body.game-ui.th-sunset{--ac:#ff9d4d;--ac2:#ffd166}
+body.game-ui.th-ocean{--ac:#60a5ff;--ac2:#54e1ed}
+body.game-ui.th-multi{--ac:#a28aff;--ac2:#42e5c5}
+body.game-ui main{width:min(1320px,100%);max-width:none;box-sizing:border-box;margin:0 auto;padding:clamp(12px,2.7vw,32px);padding-bottom:calc(46px + env(safe-area-inset-bottom,0px))}
+body.game-ui .app-top{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:0 0 20px;padding:8px 2px 18px;border-bottom:1px solid rgba(147,164,205,.18)}
+body.game-ui .brand-lockup{display:flex;align-items:center;gap:15px;min-width:0}
+body.game-ui .brand-mark{width:56px;height:56px;flex:none;display:grid;place-items:center;border-radius:18px;color:#0c1325;font-size:29px;font-weight:900;background:linear-gradient(135deg,var(--ac),var(--ac2));box-shadow:0 0 35px color-mix(in srgb,var(--ac) 22%,transparent)}
+body.game-ui .brand-copy{min-width:0}
+body.game-ui .eyebrow,body.game-ui .panel-kicker{font-size:10px;letter-spacing:.18em;font-weight:800;color:var(--ac2)}
+body.game-ui h1{font-size:clamp(25px,3vw,34px);line-height:1.15;letter-spacing:-.04em;margin:4px 0 5px;background:linear-gradient(100deg,#fff,var(--ac2));-webkit-background-clip:text;background-clip:text;color:transparent;display:block}
+body.game-ui .tagline{margin:0;color:var(--mut);font-size:13px}
+body.game-ui .top-status{display:flex;align-items:center;gap:9px;white-space:nowrap;padding:10px 13px;border:1px solid var(--bd);border-radius:999px;background:rgba(16,26,47,.72);font-size:12px;color:#cbd6f3}
+body.game-ui .status-orb{width:8px;height:8px;border-radius:100%;background:var(--ac2);box-shadow:0 0 0 4px color-mix(in srgb,var(--ac2) 15%,transparent),0 0 14px var(--ac2)}
+body.game-ui .quick-nav{position:sticky;top:8px;z-index:15;display:flex;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;margin:0 0 22px;padding:8px;border:1px solid rgba(128,149,194,.18);border-radius:17px;background:rgba(10,16,32,.84);backdrop-filter:blur(18px);box-shadow:0 8px 30px rgba(0,0,0,.18)}
+body.game-ui .quick-nav::-webkit-scrollbar{display:none}
+body.game-ui .quick-nav a{display:inline-flex;align-items:center;gap:7px;flex:none;padding:9px 13px;border-radius:11px;text-decoration:none;color:var(--mut);font-size:12px;font-weight:700;transition:background .18s,color .18s}
+body.game-ui .quick-nav a:hover,body.game-ui .quick-nav a:focus-visible{color:var(--tx);background:color-mix(in srgb,var(--ac) 17%,transparent);outline:none}
+body.game-ui .dashboard{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);grid-template-areas:"focus stats" "focus recap" "week week" "goals goals" "race race" "level subject" "activity calendar" "achievements achievements" "settings settings" "history history";gap:20px;align-items:start}
+body.game-ui .panel{min-width:0;scroll-margin-top:95px}
+body.game-ui #focus-panel{grid-area:focus}body.game-ui #stats-panel{grid-area:stats}body.game-ui #recap-panel{grid-area:recap}body.game-ui #week-panel{grid-area:week}body.game-ui #goals-panel{grid-area:goals}body.game-ui #race-panel{grid-area:race}body.game-ui #level-panel{grid-area:level}body.game-ui #subject-panel{grid-area:subject}body.game-ui #activity-panel{grid-area:activity}body.game-ui #calendar-panel{grid-area:calendar}body.game-ui #achievements-panel{grid-area:achievements}body.game-ui #settings-panel{grid-area:settings}body.game-ui #history-panel{grid-area:history}
+body.game-ui h2{display:flex;align-items:center;gap:8px;font-size:14px;line-height:1.4;letter-spacing:.015em;text-transform:none;color:#e2eaff;margin:9px 0 12px}
+body.game-ui h2::before{content:none}
+body.game-ui .panel-kicker{margin:0 0 4px;color:var(--mut);letter-spacing:.17em}
+body.game-ui .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+body.game-ui .panel-head h2{margin-bottom:0}
+body.game-ui .mode-pill{font-size:10px;letter-spacing:.09em;font-weight:800;padding:7px 10px;border-radius:999px;color:var(--ac2);border:1px solid color-mix(in srgb,var(--ac2) 35%,transparent);background:color-mix(in srgb,var(--ac2) 8%,transparent);white-space:nowrap}
+body.game-ui .card,body.game-ui .stat,body.game-ui .a{background:linear-gradient(150deg,rgba(22,33,57,.96),rgba(15,23,41,.96));border:1px solid rgba(127,151,198,.2);border-radius:20px;box-shadow:var(--sh)}
+body.game-ui .card{padding:clamp(14px,2vw,21px)}
+body.game-ui .stat{position:relative;overflow:hidden;padding:15px 8px;border-radius:16px;box-shadow:none}
+body.game-ui .stat::before{content:"";position:absolute;top:0;left:10%;right:10%;height:2px;background:linear-gradient(90deg,transparent,var(--ac2),transparent);opacity:.75}
+body.game-ui .stat b{font-size:clamp(18px,2vw,23px);line-height:1.3}
+body.game-ui .stat span{font-size:11px;color:var(--mut)}
+body.game-ui .grid4{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+body.game-ui .btn{background:linear-gradient(115deg,var(--ac),var(--ac2));color:#101328;border:0;border-radius:12px;font-weight:800;padding:10px 15px;box-shadow:0 6px 20px color-mix(in srgb,var(--ac) 18%,transparent)}
+body.game-ui .btn.g{background:rgba(25,36,61,.7);color:#dbe5ff;border:1px solid rgba(136,157,201,.27);box-shadow:none}
+body.game-ui .chip{background:rgba(10,16,32,.5);border-color:rgba(136,157,201,.25);color:#aebbd9}
+body.game-ui .chip.on,body.game-ui .chip.t.on{background:linear-gradient(115deg,var(--ac),var(--ac2));color:#101328;border-color:transparent;font-weight:800}
+body.game-ui .ring{width:min(214px,64vw);height:min(214px,64vw);background:conic-gradient(var(--ac2) calc(var(--p)*1%),var(--bd) 0);filter:drop-shadow(0 0 16px color-mix(in srgb,var(--ac) 12%,transparent))}
+body.game-ui .inr{width:calc(100% - 26px);height:calc(100% - 26px);background:radial-gradient(circle at 50% 0%,rgba(155,123,255,.12),transparent 65%),#111a2d;border:1px solid rgba(152,171,220,.12)}
+body.game-ui .clock{font-size:clamp(30px,3.1vw,40px);font-variant-numeric:tabular-nums;letter-spacing:.025em}
+body.game-ui .bar{height:10px;background:#26314b;border-radius:999px;overflow:hidden}
+body.game-ui .bar i{border-radius:999px;background:linear-gradient(90deg,var(--ac),var(--ac2)) !important;box-shadow:0 0 12px color-mix(in srgb,var(--ac) 30%,transparent)}
+body.game-ui .dots .dt{background:#1a2740;color:#8696ba}
+body.game-ui .dots .dt.on{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#0b1020}
+body.game-ui .dots .dt.td{outline-color:var(--ac2)}
+body.game-ui .a{box-shadow:none;border-radius:16px}
+body.game-ui .a:not(.lock){outline:1px solid color-mix(in srgb,var(--ac2) 25%,transparent)}
+body.game-ui .a.lock{border-color:rgba(127,151,198,.14);background:rgba(15,23,41,.68)}
+body.game-ui .goal{border-bottom-color:rgba(127,151,198,.17)}
+body.game-ui .sub{gap:12px}
+body.game-ui input[type=text],body.game-ui input[type=number],body.game-ui input[type=date],body.game-ui input[type=time],body.game-ui input[type=color],body.game-ui .in select,body.game-ui textarea{max-width:100%;box-sizing:border-box;border:1px solid #344260;border-radius:11px;background:#0d1527;color:var(--tx);padding:10px;font:inherit}
+body.game-ui .in input[type=number],body.game-ui .in input[type=time],body.game-ui .in input[type=date]{padding:8px}
+body.game-ui input[type=checkbox]{accent-color:var(--ac2)}
+body.game-ui .h{gap:10px;flex-wrap:wrap;border-bottom-color:rgba(127,151,198,.15)}
+body.game-ui .h .m{min-width:130px}
+body.game-ui .rh{gap:10px}
+body.game-ui .trk{background:linear-gradient(#25314b,#25314b) center/100% 10px no-repeat}
+body.game-ui .fill{height:10px;box-shadow:0 0 14px color-mix(in srgb,var(--ac) 15%,transparent)}
+body.game-ui .av{border:2px solid #17223a}
+body.game-ui .rbanner{border:1px solid color-mix(in srgb,var(--ac) 24%,transparent);background:linear-gradient(105deg,color-mix(in srgb,var(--ac) 15%,transparent),color-mix(in srgb,var(--ac2) 7%,transparent));border-radius:13px}
+body.game-ui .rc-g div{background:rgba(120,144,189,.08);border:1px solid rgba(127,151,198,.14)}
+body.game-ui .rc-tip{border-color:color-mix(in srgb,var(--ly) 32%,transparent);background:color-mix(in srgb,var(--ly) 8%,transparent)}
+body.game-ui .empty{color:var(--mut)}
+body.game-ui .app-footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:28px;padding:17px 4px 0;border-top:1px solid rgba(127,151,198,.15);font-size:11px;color:var(--mut)}
+body.game-ui .app-footer span:first-child{font-weight:900;letter-spacing:.16em;color:var(--ac2)}
+body.game-ui #upd{background:#121b2e;border-color:var(--ac);color:var(--tx);width:min(540px,calc(100vw - 24px))}
+body.game-ui #ro{background:var(--bg);color:var(--tx)}
+body.game-ui .warn{background:rgba(255,180,84,.1);border-color:rgba(255,180,84,.5);color:var(--tx)}
+body.game-ui .week,body.game-ui .cal{min-width:0}
+body.game-ui .cal{gap:4px}
+body.game-ui .cd{overflow:hidden;background:#19243c;border-radius:8px}
+body.game-ui .cd.l1{background:color-mix(in srgb,var(--ac2) 20%,#19243c)}body.game-ui .cd.l2{background:color-mix(in srgb,var(--ac2) 40%,#19243c)}body.game-ui .cd.l3{background:color-mix(in srgb,var(--ac2) 66%,#19243c)}body.game-ui .cd.l4{background:var(--ac2);color:#091323}
+body.game-ui .seg{background:#0c1426;border:1px solid rgba(127,151,198,.14)}body.game-ui .seg button{min-width:0}body.game-ui .seg button.on{color:var(--tx)}
+body.game-ui .s{color:var(--mut)}
+body.game-ui .lv b{background:linear-gradient(100deg,#fff,var(--ac2));-webkit-background-clip:text;background-clip:text;color:transparent}
+body.game-ui .a .ic{filter:drop-shadow(0 3px 8px rgba(0,0,0,.25))}
+body.game-ui .a.lock .ic{opacity:.6;filter:grayscale(1)}
+body.game-ui #timer .stars button.on{color:#ffd166;text-shadow:0 0 10px rgba(255,209,102,.2)}
+body.game-ui .week-panel .chart{max-height:260px}
+@media(max-width:900px){
+ body.game-ui .dashboard{grid-template-columns:minmax(0,1fr);grid-template-areas:"focus" "stats" "recap" "week" "goals" "race" "level" "subject" "activity" "calendar" "achievements" "settings" "history";gap:17px}
+ body.game-ui .app-top{align-items:flex-start}
+ body.game-ui .top-status{font-size:0;padding:10px}
+ body.game-ui .top-status .status-orb{width:9px;height:9px}
+ body.game-ui .panel-head{align-items:flex-start}
+}
+@media(max-width:520px){
+ body.game-ui main{padding:12px;padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+ body.game-ui .app-top{padding-bottom:14px;margin-bottom:12px;gap:8px}
+ body.game-ui .brand-lockup{gap:10px}
+ body.game-ui .brand-mark{width:44px;height:44px;border-radius:14px;font-size:23px}
+ body.game-ui h1{font-size:24px}
+ body.game-ui .tagline{font-size:11px}
+ body.game-ui .top-status{display:none}
+ body.game-ui .quick-nav{top:4px;margin-bottom:16px;padding:5px;border-radius:13px;gap:3px}
+ body.game-ui .quick-nav a{padding:9px 10px;font-size:11px}
+ body.game-ui .card{padding:14px;border-radius:17px}
+ body.game-ui .ring{width:190px;height:190px}
+ body.game-ui .inr{width:164px;height:164px}
+ body.game-ui .clock{font-size:31px}
+ body.game-ui .stat{padding:12px 5px}
+ body.game-ui .panel-head{flex-wrap:wrap}
+ body.game-ui .panel-head .btn{flex:none}
+ body.game-ui .rh{font-size:12px}
+ body.game-ui .rk{min-width:23px;font-size:17px}
+ body.game-ui .rx{font-size:12px}
+ body.game-ui .h{align-items:flex-start}
+ body.game-ui .h>b{font-size:12px}
+ body.game-ui .h .x{padding:5px}
+ body.game-ui .rc-g{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.game-ui .app-footer{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){body.game-ui *,body.game-ui *::before,body.game-ui *::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}

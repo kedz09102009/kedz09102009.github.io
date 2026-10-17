@@ -1,6 +1,6 @@
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
-const BUILD='2026-10-17-3'; // số phiên bản của mã chương trình. Mỗi lần phát hành bản mới phải đổi số này để các máy đang mở bản cũ biết mà báo tải lại
+const BUILD='2026-10-17-game-4'; // số phiên bản của mã chương trình. Mỗi lần phát hành bản mới phải đổi số này để các máy đang mở bản cũ biết mà báo tải lại
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
 const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.subjects bằng rebuildSubj(). Thêm/đổi tên/đổi màu/ẩn môn ngay trong phần Cài đặt.
 // ===== 2. DỮ LIỆU (biến S) =====
@@ -25,7 +25,7 @@ function subAdd(){const n=$('ns').value.trim();if(!n)return;const P=['#2f8f6e','
 ensureSubjects();
 // Lưu S vào localStorage. Sau mỗi thay đổi dữ liệu: gọi save() rồi render().
 // Hai nơi lưu: localStorage (bản nhớ tạm trong trình duyệt) và, nếu đang chạy server.py, file data.json trên máy.
-let serverMode=false,disk='local',st,ro=false,lastW=0,user=null,peers=null,cstat='',unM=null,unR=null,cpt,ppt,cloudHooked=false,cloudSynced=false,raceRank=0,racePrev={},raceBoom=0,lastChk=0,updShown=false;
+let serverMode=false,disk='local',st,ro=false,lastW=0,user=null,peers=null,cstat='',unM=null,unR=null,cpt,ppt,cloudHooked=false,cloudSynced=false,cloudRev=0,raceRank=0,racePrev={},raceBoom=0,lastChk=0,updShown=false;
 function cache(){try{localStorage.setItem('studylog',JSON.stringify(S))}catch(e){}}
 function save(){if(ro)return;cache();cPush();pubSummary();if(serverMode){clearTimeout(st);st=setTimeout(toServer,800)}}
 // Ghi lên server kèm số phiên bản (rev). Nếu data.json đã bị nơi khác sửa (409): gộp dữ liệu rồi ghi lại.
@@ -371,12 +371,15 @@ function recapUI(s){
   <div class="rc-g">${[[dn+'/'+(S.goalDays||5),'ngày học đủ'],[L.length,'buổi học'],['+'+xp,'XP'],[af+' ★','tập trung TB'],[hm(lg),'buổi dài nhất'],[pn?Math.round(pc/pn*100)+'%':'–','bài làm đúng']].map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')}</div>
   ${rows}${ac.length?`<div class="rc-a">Thành tích mới: ${ac.map(a=>a[1]+' '+a[2]).join(' · ')}</div>`:''}
   <div class="rc-tip">${tip}</div>`}
-function summary(){const s=stats(),w=mon(),pw=new Date(w);pw.setDate(pw.getDate()-7);const prev=previousWeekMe(s);return Object.assign({name:(S.name||'Bạn').slice(0,30),streak:s.cur,xp:s.xp,level:Math.floor(Math.sqrt(s.xp/50))+1,week:dk(w),prevWeek:dk(pw),t:Date.now()},weekMe(s),{xpPrevWeek:prev.xpWeek,daysPrevWeek:prev.daysWeek,minPrevWeek:prev.minWeek,prevWeekHasData:prev.hasData})}
+function summary(){const s=stats(),w=mon(),pw=new Date(w);pw.setDate(pw.getDate()-7);const prev=previousWeekMe(s);return Object.assign({name:(S.name||'Bạn').slice(0,30),streak:s.cur,xp:s.xp,level:Math.floor(Math.sqrt(s.xp/50))+1,week:dk(w),prevWeek:dk(pw),t:Date.now(),sourceRev:cloudRev},weekMe(s),{xpPrevWeek:prev.xpWeek,daysPrevWeek:prev.daysWeek,minPrevWeek:prev.minWeek,prevWeekHasData:prev.hasData})}
 const pk=()=>JSON.stringify({sessions:S.sessions,ach:S.ach,del:S.del,goalD:S.goalD,goalW:S.goalW,pomo:S.pomo,rem:S.rem,minD:S.minD,goalDays:S.goalDays,rest:S.rest,subjects:S.subjects,goals:S.goals,room:S.room,name:S.name,su:S.su||0,ver:S.ver});
 // Chỉ đẩy dữ liệu lên sau khi đã nhận bản trên mạng lần đầu (cloudSynced), để máy mới không ghi đè dữ liệu cũ trên mạng
-function cPush(){if(!user||ro||!cloudSynced)return;clearTimeout(cpt);cpt=setTimeout(()=>cloud.setMine({j:pk(),u:Date.now()}).then(()=>{cstat='ok';cs()}).catch(()=>{cstat='err';cs()}),1500)}
+function cPush(){if(!user||ro||!cloudSynced||!window.cloud||!cloud.setMine)return;clearTimeout(cpt);cpt=setTimeout(async()=>{try{const latest=await cloud.setMine({j:pk(),u:Date.now()});
+    // The cloud transaction returns the merged profile. Adopt it so phone and desktop converge,
+    // instead of letting whichever device writes last erase sessions from the other device.
+    if(latest&&latest.j)cAdopt(latest);cstat='ok';cs()}catch(e){cstat='err';cs();console.warn('Đồng bộ hồ sơ chưa thành công:',e)}},1200)}
 function pubSummary(){if(!user||ro||!S.room)return;clearTimeout(ppt);ppt=setTimeout(()=>cloud.setMember(S.room,summary()).catch(()=>{}),3000)}
-function cAdopt(d){if(ro)return;let o;try{o=JSON.parse(d.j)}catch(e){return}const b=sig(S),r0=S.room;merge(migrate(o));
+function cAdopt(d){if(ro)return;if(d&&d.updatedAt&&typeof d.updatedAt.toMillis==='function')cloudRev=Math.max(cloudRev,d.updatedAt.toMillis());let o;try{o=JSON.parse(d.j)}catch(e){return}const b=sig(S),r0=S.room;merge(migrate(o));
   if(sig(S)!==b){cache();render()}if(S.room!==r0)startRoom();if(sig(S)!==sig(o))cPush();
   // Sau khi nhận dữ liệu học tập trên đám mây, phải tính và công bố lại tóm tắt phòng.
   // Nếu không, bảng xếp hạng tuần trước có thể giữ số 0 từ trạng thái cục bộ trước khi đồng bộ.
@@ -469,7 +472,7 @@ render();
 // Chỉ chạy ở tab được phép ghi dữ liệu: kiểm tra đồng hồ bị bỏ quên, rồi thử kết nối server.py.
 // Nếu có server: gộp dữ liệu trong data.json với dữ liệu của trình duyệt rồi ghi lại vào data.json.
 if('serviceWorker' in navigator&&location.protocol=='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{});
-  if(navigator.serviceWorker.controller)navigator.serviceWorker.addEventListener('controllerchange',showNew)} // chỉ khi chạy từ trang web https (bản điện thoại)
+  if(navigator.serviceWorker.controller)navigator.serviceWorker.addEventListener('controllerchange',()=>{setTimeout(()=>chkNew(false),500)})} // chỉ khi chạy từ trang web https (bản điện thoại)
 function boot(){try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
   if(chkGap(Date.now()))toast('⏸ Đồng hồ đã tự tạm dừng vì trang bị đóng hoặc máy ngủ');
   render();

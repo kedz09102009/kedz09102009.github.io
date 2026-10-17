@@ -1,6 +1,28 @@
-// Cầu nối với Firebase (đăng nhập Google + cơ sở dữ liệu Firestore).
-// Nếu config.js chưa điền cấu hình thì file này không làm gì cả và phần mềm chạy như bình thường.
+// Cầu nối Firebase: Google Auth, Firestore và đồng bộ an toàn giữa nhiều thiết bị.
+// Firebase Web API key không phải thông tin xác thực bí mật; quyền truy cập thực tế phải được khóa bằng Firestore Security Rules.
 const cfg=window.FIREBASE_CONFIG;
+function parseState(doc){try{return JSON.parse(doc&&doc.j||'{}')}catch(e){return{}}}
+function mergeStates(remoteDoc, incomingDoc){
+  const remote=parseState(remoteDoc),local=parseState(incomingDoc);
+  const deleted={};
+  for(const [id,t] of Object.entries(remote.del||{}))deleted[id]=t;
+  for(const [id,t] of Object.entries(local.del||{}))deleted[id]=Math.max(Number(deleted[id])||0,Number(t)||0);
+  const sessions=new Map();
+  for(const x of [...(remote.sessions||[]),...(local.sessions||[])]){
+    if(!x||x.id==null||deleted[String(x.id)])continue;
+    const k=String(x.id),old=sessions.get(k);
+    if(!old||(Number(x.m)||0)>(Number(old.m)||0)||((Number(x.m)||0)===(Number(old.m)||0)&&x===local.sessions?.find?.(z=>String(z.id)===k)))sessions.set(k,x);
+  }
+  const ach={...(remote.ach||{})};
+  for(const [k,v] of Object.entries(local.ach||{}))ach[k]=Math.max(Number(ach[k])||0,Number(v)||0);
+  const pref=(Number(remote.su)||0)>(Number(local.su)||0)?remote:local;
+  const other=pref===remote?local:remote;
+  const out={...remote,...local,sessions:[...sessions.values()],del:deleted,ach};
+  for(const k of ['goalD','goalW','pomo','rem','minD','goalDays','rest','room','name','subjects','goals','su','ver']){
+    if(pref[k]!==undefined)out[k]=pref[k];else if(other[k]!==undefined)out[k]=other[k];
+  }
+  return JSON.stringify(out);
+}
 if(cfg&&cfg.apiKey){
   try{
     const B='https://www.gstatic.com/firebasejs/10.12.2/';
@@ -10,11 +32,16 @@ if(cfg&&cfg.apiKey){
       onAuth:cb=>A.onAuthStateChanged(auth,cb),
       signIn:()=>A.signInWithPopup(auth,new A.GoogleAuthProvider()),
       signOut:()=>A.signOut(auth),
-      watchMine:cb=>F.onSnapshot(F.doc(db,'users',uid()),s=>cb(s.exists()?s.data():null),()=>{}),
-      setMine:d=>F.setDoc(F.doc(db,'users',uid()),d),
-      setMember:(r,d)=>F.setDoc(F.doc(db,'rooms',r,'members',uid()),d),
+      watchMine:cb=>F.onSnapshot(F.doc(db,'users',uid()),s=>cb(s.exists()?s.data():null),err=>{console.warn('Không đọc được hồ sơ Firebase:',err)}),
+      // Atomic merge protects session history when phone and computer save close together/offline changes reconnect.
+      setMine:d=>F.runTransaction(db,async tx=>{const ref=F.doc(db,'users',uid()),snap=await tx.get(ref);const old=snap.exists()?snap.data():null;
+        const result={...(old||{}),...d,j:old&&old.j?mergeStates(old,d):d.j,u:Math.max(Number(old&&old.u)||0,Number(d.u)||0,Date.now()),updatedAt:F.serverTimestamp()};tx.set(ref,result);return result}),
+      setMember:(r,d)=>F.runTransaction(db,async tx=>{const ref=F.doc(db,'rooms',r,'members',uid()),snap=await tx.get(ref),old=snap.exists()?snap.data():null;
+        // Prefer the summary derived from the newest server-committed personal profile revision.
+        // The timestamp t is only a tie-breaker; client clock skew cannot make an older profile win.
+        if(old){const oldRev=Number(old.sourceRev)||0,newRev=Number(d.sourceRev)||0;if(oldRev>newRev||(oldRev===newRev&&(Number(old.t)||0)>(Number(d.t)||0)))return old;}tx.set(ref,d);return d}),
       delMember:r=>F.deleteDoc(F.doc(db,'rooms',r,'members',uid())),
-      watchRoom:(r,cb)=>F.onSnapshot(F.collection(db,'rooms',r,'members'),s=>cb(s.docs.map(x=>Object.assign({id:x.id},x.data()))),()=>cb(null))};
+      watchRoom:(r,cb)=>F.onSnapshot(F.collection(db,'rooms',r,'members'),s=>cb(s.docs.map(x=>Object.assign({id:x.id},x.data()))),err=>{console.warn('Không đọc được phòng thi đua:',err);cb(null)})};
     window.dispatchEvent(new Event('cloudready'));
   }catch(e){console.warn('Không tải được Firebase (có thể đang offline):',e)}
 }
