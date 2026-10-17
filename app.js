@@ -1,6 +1,6 @@
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
-const BUILD='2026-10-17-original-ui-9'; // số phiên bản của mã chương trình. Mỗi lần phát hành bản mới phải đổi số này để các máy đang mở bản cũ biết mà báo tải lại
+const BUILD='2026-10-17-original-ui-10'; // số phiên bản của mã chương trình. Mỗi lần phát hành bản mới phải đổi số này để các máy đang mở bản cũ biết mà báo tải lại
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
 const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.subjects bằng rebuildSubj(). Thêm/đổi tên/đổi màu/ẩn môn ngay trong phần Cài đặt.
 // ===== 2. DỮ LIỆU (biến S) =====
@@ -8,6 +8,7 @@ const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.sub
 // ach = thành tích đã mở khoá, goalD/goalW = mục tiêu ngày/tuần (phút).
 // S được lưu vào localStorage (bộ nhớ của trình duyệt) bằng hàm save().
 let S={sessions:[],active:null,sel:'toan',ach:{},del:{},su:0,goalD:120,goalW:600,pomo:false,rem:'',u:0,ver:1,rev:0,minD:15,goalDays:5,rest:1,room:'',name:'',goals:[],subjects:DEF_SUBJ.map(x=>({...x}))},fin=false,focus=0,topic='',typ='',vN='',vC='',delId=0,hAll=false,EF=null,chM='w',GF=null,cY=new Date().getFullYear(),cM=new Date().getMonth();
+let analyticsRange=7; // khoảng thời gian đang xem trong phần phân tích; không ảnh hưởng dữ liệu lưu trữ
 const VER=1; // phiên bản định dạng dữ liệu. Sau này nếu đổi cách lưu, tăng số này và xử lý trong migrate()
 function migrate(o){if(!o||typeof o!='object')return{};
   o.sessions=(Array.isArray(o.sessions)?o.sessions:[]).filter(x=>x&&typeof x.ts=='number'&&typeof x.dur=='number'&&typeof x.subj=='string'); // bỏ bản ghi hỏng
@@ -177,6 +178,7 @@ function draw(){if(!SUBJ[S.sel])S.sel=vis('')[0];
   const mx=Math.max(1,...Object.values(s.by));
   $('subj').innerHTML=Object.keys(SUBJ).filter(k=>!SUBJ[k].hid||s.by[k]).map(k=>`<div class="sub"><span>${SUBJ[k].n}</span><span>${hm(s.by[k]||0)}</span></div><div class="bar"><i style="width:${(s.by[k]||0)/mx*100}%;background:${SUBJ[k].c}"></i></div>`).join('');
   $('week').innerHTML=weekUI();
+  $('analytics').innerHTML=analyticsUI(s);
   const AL=achAll(),un=AL.filter(x=>S.ach[x[0]]).length;
   $('achT').textContent=`Thành tích (${un}/${AL.length})`;
   $('ach').innerHTML=AL.map(x=>{const[c,t]=x[4](s),u=S.ach[x[0]],p=Math.min(c/t,1)*100;
@@ -349,6 +351,69 @@ function weekFor(w0,s){const end=new Date(w0);end.setDate(end.getDate()+7);const
 function weekMe(s){return weekFor(mon(),s)}
 function previousWeekMe(s){const w=new Date(mon());w.setDate(w.getDate()-7);return weekFor(w,s)}
 // Chỉ những số liệu tổng hợp này được gửi cho bạn bè (không có môn học, nội dung, ghi chú)
+// ===== PHÂN TÍCH HỌC TẬP NÂNG CAO =====
+function setAnalyticsRange(n){analyticsRange=[7,30,90].includes(+n)?+n:7;render()}
+function analyticsUI(s){
+  const n=[7,30,90].includes(+analyticsRange)?+analyticsRange:7;
+  const today=new Date();today.setHours(0,0,0,0);
+  const start=new Date(today);start.setDate(start.getDate()-n+1);
+  const end=new Date(today);end.setDate(end.getDate()+1);
+  const keys=[];
+  for(let d=new Date(start);d<end;d.setDate(d.getDate()+1))keys.push(dk(d));
+  const prevStart=new Date(start);prevStart.setDate(prevStart.getDate()-n);
+  const prevKeys=[];
+  for(let d=new Date(prevStart);d<start;d.setDate(d.getDate()+1))prevKeys.push(dk(d));
+  const sumDays=ks=>ks.reduce((t,k)=>t+(s.days[k]||0),0);
+  const total=sumDays(keys),prevTotal=sumDays(prevKeys);
+  const t0=start.getTime(),t1=end.getTime();
+  const list=S.sessions.filter(x=>typeof x.ts==='number'&&x.ts>=t0&&x.ts<t1);
+  const dur=list.reduce((t,x)=>t+(x.dur||0),0);
+  const mins=list.reduce((t,x)=>t+(x.n||0),0),correct=list.reduce((t,x)=>t+(x.c||0),0);
+  const judged=list.filter(x=>(x.focus||0)>0),focusAvg=judged.length?judged.reduce((t,x)=>t+x.focus,0)/judged.length:null;
+  const qualified=keys.filter(k=>(s.days[k]||0)>=(S.minD||15)*60).length;
+  const active=keys.filter(k=>(s.days[k]||0)>0).length;
+  const bySubj={},byType={};
+  list.forEach(x=>{bySubj[x.subj]=(bySubj[x.subj]||0)+(x.dur||0);if(x.type)byType[x.type]=(byType[x.type]||0)+(x.dur||0)});
+  const subjRows=Object.entries(bySubj).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const typeRows=Object.entries(byType).sort((a,b)=>b[1]-a[1]);
+  const maxSub=Math.max(1,...subjRows.map(x=>x[1])),maxType=Math.max(1,...typeRows.map(x=>x[1]));
+  const fmtPct=x=>Math.round(x*100)+'%';
+  const trend=prevTotal>0?`${total>=prevTotal?'▲':'▼'} ${Math.abs(Math.round((total-prevTotal)/prevTotal*100))}% so với ${n} ngày trước`:'';
+  const trendHTML=prevTotal>0?`<small class="s an-trend ${total>=prevTotal?'positive':'negative'}">${trend}</small>`:'<small class="s an-trend">Chưa có đủ dữ liệu để so sánh kỳ trước</small>';
+  const groups=[];const step=n===7?1:7;
+  for(let i=0;i<keys.length;i+=step){const chunk=keys.slice(i,i+step),v=chunk.reduce((t,k)=>t+(s.days[k]||0),0),d=new Date(chunk[0]+'T12:00:00');
+    let label;if(n===7)label=['CN','T2','T3','T4','T5','T6','T7'][d.getDay()];else label=pad(d.getDate())+'/'+pad(d.getMonth()+1);
+    groups.push({label,v,title:chunk.length>1?`${chunk[0]} – ${chunk[chunk.length-1]}: ${hm(v)}`:`${chunk[0]}: ${hm(v)}`})}
+  const maxGroup=Math.max(1,...groups.map(x=>x.v));
+  const chart=`<div class="an-chart" role="img" aria-label="Biểu đồ thời gian học trong ${n} ngày">${groups.map(g=>`<div class="an-bar-slot" title="${esc(g.title)}"><b>${g.v?hm(g.v):'–'}</b><i class="an-bar" style="height:${g.v?Math.max(5,g.v/maxGroup*76):2}px"></i><span>${g.label}</span></div>`).join('')}</div>`;
+  const subjHTML=subjRows.length?subjRows.map(([k,v])=>{const sub=SUBJ[k],label=sub?sub.n:k;return`<div class="an-row"><div class="an-row-head"><span>${esc(label)}</span><span>${hm(v)} · ${fmtPct(v/Math.max(1,Object.values(bySubj).reduce((t,x)=>t+x,0)))}</span></div><div class="bar"><i style="width:${v/maxSub*100}%;background:${sub?sub.c:'var(--ac)'}"></i></div></div>`}).join(''):'<div class="empty">Chưa có dữ liệu theo môn trong khoảng này.</div>';
+  const typeHTML=typeRows.length?typeRows.map(([k,v])=>`<div class="an-row"><div class="an-row-head"><span>${esc(k)}</span><span>${hm(v)}</span></div><div class="bar"><i style="width:${v/maxType*100}%;background:var(--ac)"></i></div></div>`).join(''):'<div class="empty">Chưa phân loại hoạt động. Hãy chọn loại khi lưu buổi học.</div>';
+  const accuracy=mins?Math.round(correct/mins*100):null;
+  const avgSession=list.length?Math.round(dur/list.length):0;
+  const cards=[
+    [hm(total),'Tổng thời gian học'],
+    [String(list.length),'Buổi học đã lưu'],
+    [`${qualified}/${n}`,'Ngày đạt chuẩn học'],
+    [mins?accuracy+'%':'–','Tỉ lệ bài đúng'],
+    [focusAvg==null?'–':focusAvg.toFixed(1)+' / 5','Tập trung trung bình'],
+    [list.length?hm(avgSession):'–','Thời lượng mỗi buổi']
+  ].map(([v,l])=>`<div class="an-kpi"><b>${v}</b><span>${l}</span></div>`).join('');
+  const insights=[];
+  if(list.length){
+    if(prevTotal>0){const pct=Math.round((total-prevTotal)/prevTotal*100);insights.push(pct>0?`Thời gian học tăng ${pct}% so với ${n} ngày liền trước.`:pct<0?`Thời gian học giảm ${Math.abs(pct)}% so với ${n} ngày liền trước.`:`Thời gian học giữ nguyên so với ${n} ngày liền trước.`)}
+    if(accuracy!==null&&accuracy<70)insights.push(`Tỉ lệ bài đúng hiện là ${accuracy}%; nên xem lại lỗi sai trước khi tăng số lượng bài.`);
+    const theory=byType['Lý thuyết']||0,practice=(byType['Bài tập']||0)+(byType['Thực hành']||0)+(byType['Ôn lại']||0);
+    if(theory>practice*2&&theory>=3600)insights.push('Thời gian lý thuyết đang cao hơn nhiều so với luyện tập; hãy thử thêm một phiên làm bài và chữa lỗi.');
+    if(focusAvg!==null&&focusAvg<3.5)insights.push(`Mức tập trung trung bình ${focusAvg.toFixed(1)}/5; thử chia phiên học thành các chặng ngắn hơn.`);
+    if(!insights.length)insights.push(`Bạn đã học ${active} ngày trong ${n} ngày và đạt chuẩn ${qualified} ngày. Tiếp tục giữ nhịp học hiện tại.`);
+  }else insights.push('Chưa có buổi học được lưu trong khoảng này. Khi bạn ghi thêm buổi học, phần phân tích sẽ tự cập nhật.');
+  return`<div class="an-filters" role="group" aria-label="Khoảng thời gian phân tích">${[[7,'7 ngày'],[30,'30 ngày'],[90,'90 ngày']].map(([v,l])=>`<button class="chip ${n===v?'on':''}" onclick="setAnalyticsRange(${v})" ${n===v?'aria-pressed="true"':'aria-pressed="false"'}>${l}</button>`).join('')}</div>
+  <div class="an-meta">${keys[0]} – ${keys[keys.length-1]} · tính theo ngày trong lịch</div>
+  <div class="an-kpis">${cards}</div>
+  <div class="an-compare"><span>So với giai đoạn liền trước</span>${trendHTML}</div>
+  <div class="an-detail-grid"><section><b class="an-subtitle">📈 Nhịp học</b>${chart}<small class="s">${n===7?'Mỗi cột là một ngày.':'Mỗi cột là một nhóm tối đa 7 ngày.'} Tổng thời gian được chia theo ngày từ nhật ký đã lưu.</small></section><section><b class="an-subtitle">📚 Thời gian theo môn</b>${subjHTML}</section></div>
+  <details class="an-more"><summary>Phân tích loại hoạt động và gợi ý</summary><div class="an-detail-grid"><section>${typeHTML}</section><section><b class="an-subtitle">💡 Nhận xét từ dữ liệu</b>${insights.map(x=>`<div class="an-insight">${esc(x)}</div>`).join('')}</section></div></details>`
+}
 function recapUI(s){
   const m0=mon(),a0=new Date(m0);a0.setDate(a0.getDate()-7);const b0=new Date(a0);b0.setDate(b0.getDate()-7);
   const ks=d0=>[...Array(7)].map((_,i)=>{const d=new Date(d0);d.setDate(d.getDate()+i);return dk(d)});

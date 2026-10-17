@@ -183,7 +183,7 @@ input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shado
 @keyframes updglow{50%{box-shadow:0 12px 34px rgba(0,0,0,.4),0 0 0 6px color-mix(in srgb,var(--ac) 30%,transparent)}}
 
 /* Số phiên bản của giao diện. PHẢI trùng với BUILD trong app.js, nếu không phần mềm sẽ báo "trang đã cũ". */
-:root{--css-build:"2026-10-17-original-ui-9"}
+:root{--css-build:"2026-10-17-original-ui-10"}
 
 /* ===== Tổng kết tuần trước ===== */
 .rc-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}.rc-h b{font-size:30px;letter-spacing:-.02em;color:var(--ac)}
@@ -202,3 +202,29 @@ input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shado
 .gh>span{display:flex;align-items:flex-start;justify-content:flex-end;gap:4px;flex:0 0 auto;white-space:nowrap}
 .gh>span .x{flex:0 0 auto;padding:2px 3px}
 @media(max-width:420px){.gh{gap:8px}.gh>span{gap:2px}}
+
+
+/* ===== Phân tích dữ liệu học tập ===== */
+.an-filters{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
+.an-filters .chip{font-size:13px;padding:6px 13px}
+.an-meta{font-size:12px;color:var(--mut);margin:0 0 12px}
+.an-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.an-kpi{min-width:0;border:1px solid var(--bd);border-radius:11px;padding:10px;background:color-mix(in srgb,var(--tx) 3%,var(--card))}
+.an-kpi b{display:block;font-size:18px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.an-kpi span{display:block;color:var(--mut);font-size:12px;margin-top:4px}
+.an-compare{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0;padding:9px 11px;border-radius:10px;background:color-mix(in srgb,var(--ac) 7%,var(--card));font-size:13px}
+.an-trend{margin:0!important}.an-trend.positive{color:var(--ac)}.an-trend.negative{color:var(--ly)}
+.an-detail-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;margin-top:12px}
+.an-detail-grid>section{min-width:0}
+.an-subtitle{display:block;font-size:14px;margin-bottom:8px}
+.an-chart{height:118px;display:flex;align-items:flex-end;gap:4px;padding:8px 0 2px;min-width:0}
+.an-bar-slot{height:100%;flex:1 1 0;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;color:var(--mut);font-size:10px;overflow:hidden}
+.an-bar-slot b{font-size:9px;font-weight:500;white-space:nowrap;line-height:1.1}
+.an-bar{width:min(70%,28px);min-height:2px;border-radius:5px 5px 1px 1px;background:var(--ac);display:block;flex:none}
+.an-bar-slot span{font-size:10px;white-space:nowrap;line-height:1.1}
+.an-row{margin:9px 0}.an-row-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;margin-bottom:4px}.an-row-head span:first-child{min-width:0;overflow-wrap:anywhere}.an-row-head span:last-child{white-space:nowrap;color:var(--mut)}
+.an-row .bar{height:7px}
+.an-more{margin-top:14px;border-top:1px solid var(--bd);padding-top:10px}
+.an-more summary{cursor:pointer;font-size:14px;font-weight:600}
+.an-insight{font-size:13px;margin:7px 0;padding:9px 10px;border-left:3px solid var(--ac);background:color-mix(in srgb,var(--ac) 6%,var(--card));border-radius:0 8px 8px 0}
+@media(max-width:560px){.an-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.an-detail-grid{grid-template-columns:minmax(0,1fr);gap:14px}.an-chart{height:108px}.an-kpi b{font-size:17px}}
