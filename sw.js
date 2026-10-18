@@ -1,5 +1,5 @@
 // Service worker: cache-first for fast/offline loading. All core assets are cached as one release.
-const C='nhatky-v19-smart-scroll-v14';
+const C='nhatky-v20-simple-header-v15';
 const CORE=['index.html','style.css','app.js','config.js','cloud.js','manifest.webmanifest'];
 const OPTIONAL=['./','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil((async()=>{

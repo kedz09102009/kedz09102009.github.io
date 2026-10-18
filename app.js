@@ -1,6 +1,6 @@
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
-const BUILD='2026-10-18-smart-scroll-v14'; // Bản phát hành: cuộn dọc thông minh, giữ một đường đua chung
+const BUILD='2026-10-18-smart-scroll-v15'; // Bản phát hành: cuộn dọc thông minh, giữ một đường đua chung
 const GLOBAL_RACE_ROOM='XDU92JXZ'; // Giữ namespace hiện tại để thành viên hiện có không bị mất khỏi bảng
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
 const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.subjects bằng rebuildSubj(). Thêm/đổi tên/đổi màu/ẩn môn ngay trong phần Cài đặt.

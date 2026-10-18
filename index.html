@@ -4,14 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Nhật ký học tập</title>
-<link rel="stylesheet" href="style.css?v=2026-10-18-smart-scroll-v14">
+<link rel="stylesheet" href="style.css?v=2026-10-18-smart-scroll-v15">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
 <main id="pageTop">
-  <h1>📖 Nhật ký học tập</h1>
+  <h1 class="app-title">
+    <span class="app-title-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <path d="M3.5 5.5c3.2-.9 6-.4 8.5 1.5v12c-2.5-1.9-5.3-2.4-8.5-1.5z" />
+        <path d="M20.5 5.5c-3.2-.9-6-.4-8.5 1.5v12c2.5-1.9 5.3-2.4 8.5-1.5z" />
+        <path d="M12 7v12" />
+      </svg>
+    </span>
+    <span>Nhật ký học tập</span>
+  </h1>
   <div class="quickbar" aria-label="Điều hướng nhanh">
     <label for="quickJump">Đi nhanh đến</label>
     <select id="quickJump" onchange="jumpToSection(this.value)">
@@ -35,7 +44,7 @@
   </div>
 
   <section class="flow-section" id="sec-focus">
-    <div class="flow-label">01 / Tập trung</div>
+    <h2 class="focus-section-title">Khu vực tập trung</h2>
     <div class="card" id="hab" style="margin-bottom:12px"></div>
     <div class="card" id="timer"></div>
   </section>
@@ -114,7 +123,7 @@
 </main>
 <div id="toast"></div>
 <script type="module" src="config.js"></script>
-<script src="app.js?v=2026-10-18-smart-scroll-v14"></script>
+<script src="app.js?v=2026-10-18-smart-scroll-v15"></script>
 <script type="module" src="cloud.js"></script>
 </body>
 </html>

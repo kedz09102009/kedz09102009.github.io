@@ -183,7 +183,7 @@ input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shado
 @keyframes updglow{50%{box-shadow:0 12px 34px rgba(0,0,0,.4),0 0 0 6px color-mix(in srgb,var(--ac) 30%,transparent)}}
 
 /* Số phiên bản của giao diện. PHẢI trùng với BUILD trong app.js, nếu không phần mềm sẽ báo "trang đã cũ". */
-:root{--css-build:"2026-10-18-smart-scroll-v14"}
+:root{--css-build:"2026-10-18-smart-scroll-v15"}
 
 /* ===== Tổng kết tuần trước ===== */
 .rc-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}.rc-h b{font-size:30px;letter-spacing:-.02em;color:var(--ac)}
@@ -312,3 +312,50 @@ main{max-width:900px;width:100%;box-sizing:border-box;margin:0 auto;padding:14px
   .page-end-note{padding-bottom:8px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.fold>summary,.quick-top{transition:none}}
+
+
+/* ===== V15: tiêu đề gọn gàng và tiêu đề khu vực tập trung nhất quán ===== */
+h1.app-title{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  margin:5px 0 18px;
+  color:var(--tx);
+  -webkit-text-fill-color:var(--tx);
+  background:none;
+  -webkit-background-clip:border-box;
+  background-clip:border-box;
+  font-size:25px;
+  font-weight:650;
+  line-height:1.2;
+  letter-spacing:-.35px;
+}
+.app-title-mark{
+  display:grid;
+  place-items:center;
+  width:39px;
+  height:39px;
+  flex:none;
+  border-radius:11px;
+  color:var(--ac);
+  background:color-mix(in srgb,var(--ac) 11%,var(--card));
+  border:1px solid color-mix(in srgb,var(--ac) 24%,var(--bd));
+}
+.app-title-mark svg{display:block;width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+h2.focus-section-title{
+  display:flex;
+  align-items:center;
+  margin:2px 0 10px;
+  color:var(--tx);
+  font-size:15px;
+  font-weight:600;
+  letter-spacing:0;
+  text-transform:none;
+  line-height:1.35;
+}
+h2.focus-section-title::before{height:16px;flex:none}
+@media(max-width:560px){
+  h1.app-title{font-size:22px;gap:9px;margin-bottom:14px}
+  .app-title-mark{width:35px;height:35px;border-radius:10px}
+  .app-title-mark svg{width:21px;height:21px}
+}
