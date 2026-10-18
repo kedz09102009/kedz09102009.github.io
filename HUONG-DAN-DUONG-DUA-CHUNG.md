@@ -2,7 +2,8 @@
 
 ## Thay đổi
 - Khi đăng nhập Google, ứng dụng tự chuyển tài khoản vào một đường đua chung; không còn nút tạo phòng, nhập mã phòng, sao chép mã hoặc rời phòng.
-- Giữ cách tính XP, cấp độ, chuỗi ngày, xếp hạng tuần trước và lịch sử học hiện có.
+- Giữ cách tính XP mỗi buổi, cấp độ, chuỗi ngày, xếp hạng tuần trước và lịch sử học hiện có.
+- Từ V16, bỏ giới hạn 300 XP/ngày khi tính XP xếp hạng tuần: tổng XP tuần là tổng XP của mọi buổi trong tuần cộng 30 XP cho mỗi ngày đạt thời lượng học tối thiểu.
 - Mã nội bộ `XDU92JXZ` được giữ làm namespace kỹ thuật của đường đua chung để bảo toàn danh sách thành viên đang ở đó; mã này không còn được hiển thị như mã phòng trong giao diện.
 - Các hồ sơ đang ở các phòng cũ sẽ chuyển sang đường đua chung khi họ mở bản V13, đăng nhập và đồng bộ. Không xóa dữ liệu cũ khỏi Firebase.
 

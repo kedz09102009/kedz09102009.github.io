@@ -1,6 +1,6 @@
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
-const BUILD='2026-10-18-smart-scroll-v15'; // Bản phát hành: cuộn dọc thông minh, giữ một đường đua chung
+const BUILD='2026-10-18-no-daily-xp-cap-v16'; // Bản phát hành: bỏ trần XP 300/ngày trên bảng xếp hạng tuần
 const GLOBAL_RACE_ROOM='XDU92JXZ'; // Giữ namespace hiện tại để thành viên hiện có không bị mất khỏi bảng
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
 const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.subjects bằng rebuildSubj(). Thêm/đổi tên/đổi màu/ẩn môn ngay trong phần Cài đặt.
@@ -363,10 +363,10 @@ const sig=o=>(o.sessions||[]).map(x=>x.id+':'+(x.m||0)).sort().join()+'|'+Object
 const mon=()=>{const w=new Date();w.setHours(0,0,0,0);w.setDate(w.getDate()-((w.getDay()+6)%7));return w};
 // XP của một buổi học (dùng chung cho tổng XP và XP tuần)
 function sxp(x){const m=Math.floor(x.dur/60),cap=Math.max(10,m*2),n=Math.min(x.n||0,cap),c=Math.min(x.c||0,n);return Math.round((m+2*n+c)*(x.man?.5:1))}
-// XP tuần = XP các buổi học trong tuần (tối đa 300 mỗi ngày) + 30 XP cho mỗi ngày học đủ số phút tối thiểu
+// XP tuần = toàn bộ XP từ các buổi học trong tuần + 30 XP cho mỗi ngày học đủ số phút tối thiểu; không giới hạn XP theo ngày
 function weekFor(w0,s){const end=new Date(w0);end.setDate(end.getDate()+7);const per={};let mins=0,hasData=false;
   S.sessions.forEach(x=>{if(x.ts>=w0.getTime()&&x.ts<end.getTime()){const k=dk(x.ts);per[k]=(per[k]||0)+sxp(x);mins+=x.dur/60;hasData=true}});
-  let xp=0,days=0;Object.keys(per).forEach(k=>{xp+=Math.min(per[k],300)});
+  let xp=0,days=0;Object.keys(per).forEach(k=>{xp+=per[k]});
   for(let i=0;i<7;i++){const d=new Date(w0);d.setDate(d.getDate()+i);const sec=s.days[dk(d)]||0;if(sec>0)hasData=true;if(sec>=(S.minD||15)*60)days++}
   return{xpWeek:xp+30*days,daysWeek:days,minWeek:Math.round(mins),hasData}
 }
@@ -567,7 +567,7 @@ function raceUI(s){
   const wk=dk(mon()),L=(peers||[]).map(p=>Object.assign({},p,{x:p.week===wk?Number(p.xpWeek)||0:0,d:p.week===wk?Number(p.daysWeek)||0:0})).sort((a,b)=>b.x-a.x||String(a.name||'').localeCompare(String(b.name||''),'vi')),
     top=Math.max(0,...L.map(p=>p.x)),cap=Math.max(600,Math.ceil(top*1.15/100)*100),
     PAL=['#ff6b6b','#ffa94d','#ffd43b','#69db7c','#38d9a9','#4dabf7','#9775fa','#f783ac'],colOf=id=>PAL[[...String(id)].reduce((a,c)=>a+c.charCodeAt(0),0)%PAL.length],
-    tail=`<small class="s race-footnote" style="margin-top:10px">Đường đua chung · XP tuần = XP buổi học (tối đa 300 mỗi ngày) + 30 XP cho mỗi ngày đạt số phút tối thiểu. Tính lại từ thứ Hai · Vạch đích: ${cap} XP.</small>`;
+    tail=`<small class="s race-footnote" style="margin-top:10px">Đường đua chung · XP tuần = toàn bộ XP từ buổi học + 30 XP cho mỗi ngày đạt số phút tối thiểu; không giới hạn XP/ngày. Tính lại từ thứ Hai · Vạch đích: ${cap} XP.</small>`;
   const count=peers===undefined?'Đang tải…':peers===null?'Lỗi kết nối':`${L.length} thành viên`;
   h+=`<div class="sub race-room-head" style="margin-top:12px"><span>🌍 <b>Đường đua chung</b><i class="live" title="Cập nhật trực tiếp"></i></span><span class="race-count">${count}</span><button class="x" onclick="refreshRace()">Làm mới</button></div>`;
   if(peers===undefined)return h+'<div class="empty">Đang kết nối và đăng ký bạn vào đường đua chung…</div>'+tail;
