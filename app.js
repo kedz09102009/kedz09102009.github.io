@@ -1,6 +1,7 @@
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
-const BUILD='2026-10-18-race-v11'; // số phiên bản của mã chương trình. Mỗi lần phát hành bản mới phải đổi số này để các máy đang mở bản cũ biết mà báo tải lại
+const BUILD='2026-10-18-global-race-v13'; // Bản phát hành đồng bộ: chỉ một đường đua chung
+const GLOBAL_RACE_ROOM='XDU92JXZ'; // Giữ namespace hiện tại để thành viên hiện có không bị mất khỏi bảng
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
 const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.subjects bằng rebuildSubj(). Thêm/đổi tên/đổi màu/ẩn môn ngay trong phần Cài đặt.
 // ===== 2. DỮ LIỆU (biến S) =====
@@ -26,7 +27,7 @@ function subAdd(){const n=$('ns').value.trim();if(!n)return;const P=['#2f8f6e','
 ensureSubjects();
 // Lưu S vào localStorage. Sau mỗi thay đổi dữ liệu: gọi save() rồi render().
 // Hai nơi lưu: localStorage (bản nhớ tạm trong trình duyệt) và, nếu đang chạy server.py, file data.json trên máy.
-let serverMode=false,disk='local',st,ro=false,lastW=0,user=null,peers=undefined,cstat='',unM=null,unR=null,cpt,ppt,cloudHooked=false,cloudSynced=false,cloudRev=0,raceRank=0,racePrev={},raceBoom=0,lastChk=0,updShown=false,roomPublishError=false,roomReadError=false;
+let serverMode=false,disk='local',st,ro=false,lastW=0,user=null,peers=undefined,cstat='',unM=null,unR=null,cpt,ppt,cloudHooked=false,cloudSynced=false,cloudRev=0,raceRank=0,racePrev={},raceBoom=0,lastChk=0,updShown=false,roomPublishError=null,roomPublishBusy=false,roomPublishPromise=null,roomReadError=false;
 function cache(){try{localStorage.setItem('studylog',JSON.stringify(S))}catch(e){}}
 function save(){if(ro)return;cache();cPush();pubSummary();if(serverMode){clearTimeout(st);st=setTimeout(toServer,800)}}
 // Ghi lên server kèm số phiên bản (rev). Nếu data.json đã bị nơi khác sửa (409): gộp dữ liệu rồi ghi lại.
@@ -443,54 +444,145 @@ function cPush(){if(!user||ro||!cloudSynced||!window.cloud||!cloud.setMine)retur
     // The cloud transaction returns the merged profile. Adopt it so phone and desktop converge,
     // instead of letting whichever device writes last erase sessions from the other device.
     if(latest&&latest.j)cAdopt(latest);cstat='ok';cs()}catch(e){cstat='err';cs();console.warn('Đồng bộ hồ sơ chưa thành công:',e)}},1200)}
-function pubSummary(){if(!user||ro||!S.room||!window.cloud||!cloud.ready)return;clearTimeout(ppt);ppt=setTimeout(()=>{const room=S.room;if(!room||!user)return;cloud.setMember(room,summary()).then(()=>{roomPublishError=false}).catch(e=>{roomPublishError=true;console.warn('Không thể đăng ký/cập nhật thành viên trong phòng:',e)})},500)}
-function cAdopt(d){if(ro)return;if(d&&d.updatedAt&&typeof d.updatedAt.toMillis==='function')cloudRev=Math.max(cloudRev,d.updatedAt.toMillis());let o;try{o=JSON.parse(d.j)}catch(e){return}const b=sig(S),r0=S.room;merge(migrate(o));
-  if(sig(S)!==b){cache();render()}if(S.room!==r0)startRoom();if(sig(S)!==sig(o))cPush();
-  // Sau khi nhận dữ liệu học tập trên đám mây, phải tính và công bố lại tóm tắt phòng.
-  // Nếu không, bảng xếp hạng tuần trước có thể giữ số 0 từ trạng thái cục bộ trước khi đồng bộ.
-  pubSummary()}
+function roomPublishErrorText(){
+  const e=String(roomPublishError||'');
+  if(e.includes('permission-denied'))return 'Firebase đã từ chối đăng ký. Cần kiểm tra Firestore Security Rules để cho phép người dùng đăng ký hồ sơ của chính tài khoản mình trong đường đua chung.';
+  if(e.includes('unavailable')||e.includes('network')||e.includes('deadline-exceeded'))return 'Không kết nối được Firebase. Kiểm tra mạng rồi nhấn thử lại.';
+  if(e.includes('verification-failed'))return 'Đã gửi yêu cầu đăng ký nhưng chưa xác nhận được hồ sơ trên đường đua chung. Hãy thử lại.';
+  return 'Chưa đăng ký được thành viên ('+e.slice(0,90)+'). Hãy thử lại hoặc kiểm tra quyền truy cập Firebase vào đường đua chung.';
+}
+async function publishRoomMember(showFeedback=false){
+  if(!user||ro||!cloudSynced||S.room!==GLOBAL_RACE_ROOM||!window.cloud||!cloud.ready||!cloud.setMember)return false;
+  if(roomPublishPromise){const ok=await roomPublishPromise;if(showFeedback)toast(ok?'✓ Đã đăng ký thành viên trong phòng.':roomPublishErrorText());return ok}
+  clearTimeout(ppt);ppt=null;
+  const room=S.room,uid=user.uid;
+  roomPublishBusy=true;roomPublishError=null;render();
+  roomPublishPromise=(async()=>{
+    try{
+      await cloud.setMember(room,summary());
+      // Verify that the document was actually written and is visible to this signed-in user.
+      if(cloud.getMember){const saved=await cloud.getMember(room);if(!saved)throw new Error('verification-failed')}
+      if(S.room!==room||!user||user.uid!==uid)return false;
+      roomPublishError=null;
+      return true;
+    }catch(e){
+      if(S.room===room&&user&&user.uid===uid)roomPublishError=e&&e.code?e.code:(e&&e.message?e.message:'unknown');
+      console.warn('Không thể đăng ký/cập nhật thành viên trong đường đua chung:',e);
+      return false;
+    }finally{
+      roomPublishBusy=false;roomPublishPromise=null;render();
+    }
+  })();
+  const ok=await roomPublishPromise;
+  if(showFeedback)toast(ok?'✓ Đã đăng ký và xác nhận thành viên trong phòng.':roomPublishErrorText());
+  return ok;
+}
+function pubSummary(){if(!user||ro||!cloudSynced||S.room!==GLOBAL_RACE_ROOM||!window.cloud||!cloud.ready)return;clearTimeout(ppt);ppt=setTimeout(()=>publishRoomMember(false),650)}
+function retryRoomRegistration(){publishRoomMember(true)}
+function refreshRoom(){startRoom();publishRoomMember(true)}
+function ensureGlobalRaceRoom(){
+  if(!user||ro)return false;
+  if(S.room===GLOBAL_RACE_ROOM)return false;
+  // Room preference is part of the synced profile; advance its marker so the canonical room wins on all devices.
+  S.room=GLOBAL_RACE_ROOM;
+  S.su=Math.max(Date.now(),(Number(S.su)||0)+1);
+  cache();
+  return true;
+}
+function cAdopt(d){
+  if(ro)return;
+  if(d&&d.updatedAt&&typeof d.updatedAt.toMillis==='function')cloudRev=Math.max(cloudRev,d.updatedAt.toMillis());
+  let o;try{o=JSON.parse(d.j)}catch(e){return}
+  const b=sig(S),r0=S.room;
+  merge(migrate(o));
+  // Ignore legacy per-user room settings: every signed-in account uses the same global race.
+  ensureGlobalRaceRoom();
+  if(sig(S)!==b){cache();render()}
+  if(S.room!==r0)startRoom();
+  if(sig(S)!==sig(o))cPush();
+  pubSummary();
+}
 function cs(){const e=$('cs');if(e)e.textContent={ok:'✓ Đã đồng bộ',err:'⚠ Lỗi đồng bộ — dữ liệu vẫn lưu trên máy này'}[cstat]||''}
-function startRoom(){if(unR){unR();unR=null}peers=undefined;roomReadError=false;roomPublishError=false;if(user&&S.room){pubSummary();unR=cloud.watchRoom(S.room,l=>{peers=Array.isArray(l)?l:null;roomReadError=!Array.isArray(l);render()})}}
-function cloudInit(){if(!window.cloud||!window.cloud.ready||cloudHooked)return;cloudHooked=true;
-  cloud.onAuth(u=>{user=u;cloudSynced=false;if(unM){unM();unM=null}
-    if(u){if(!S.name&&u.displayName){S.name=u.displayName;S.su=Date.now();cache()}
-      unM=cloud.watchMine(d=>{cloudSynced=true;if(d)cAdopt(d);else cPush();cstat='ok';cs()});startRoom()}
-    else{if(unR){unR();unR=null}peers=undefined;roomReadError=false}render()})}
-function newRoom(){const a=new Uint8Array(8);crypto.getRandomValues(a);joinRoom([...a].map(b=>'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[b%31]).join(''))}
-function joinRoom(c){c=(c||$('rc').value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length<6){toast('Mã phòng cần ít nhất 6 ký tự');return}S.room=c;S.su=Date.now();save();startRoom();render()}
-function leaveRoom(){const r=S.room;S.room='';S.su=Date.now();save();if(r&&user)cloud.delMember(r).catch(()=>{});startRoom();render()}
-function setName(v){S.name=v.trim().slice(0,30);S.su=Date.now();save();render()}
+function startRoom(){
+  if(unR){unR();unR=null}
+  peers=undefined;roomReadError=false;
+  if(user&&!ro){
+    ensureGlobalRaceRoom();
+    pubSummary();
+    unR=cloud.watchRoom(GLOBAL_RACE_ROOM,l=>{peers=Array.isArray(l)?l:null;roomReadError=!Array.isArray(l);render()});
+  }
+}
+function cloudInit(){
+  if(!window.cloud||!window.cloud.ready||cloudHooked)return;
+  cloudHooked=true;
+  cloud.onAuth(u=>{
+    user=u;cloudSynced=false;
+    if(unM){unM();unM=null}
+    if(u){
+      if(!S.name&&u.displayName){S.name=u.displayName;S.su=Math.max(Date.now(),(Number(S.su)||0)+1);cache()}
+      ensureGlobalRaceRoom();
+      unM=cloud.watchMine(d=>{
+        cloudSynced=true;
+        if(d)cAdopt(d);else cPush();
+        ensureGlobalRaceRoom();
+        // Once the profile is hydrated, listen to and publish the member record in the one shared race.
+        startRoom();pubSummary();cstat='ok';cs();render();
+      });
+      startRoom();
+    }else{
+      if(unR){unR();unR=null}
+      peers=undefined;roomReadError=false;
+    }
+    render();
+  });
+}
+function setName(v){S.name=v.trim().slice(0,30);S.su=Math.max(Date.now(),(Number(S.su)||0)+1);save();render()}
+function refreshRace(){startRoom();publishRoomMember(true)}
+function retryRoomRegistration(){publishRoomMember(true)}
 function raceUI(s){
-  if(!window.cloud||!window.cloud.ready)return'<div class="empty">Chưa bật đồng bộ. Làm theo HUONG-DAN-DONG-BO.md để bật (cần cấu hình Firebase).</div>';
-  if(!user)return'<div class="row"><button class="btn" onclick="cloud.signIn().catch(()=>toast(\'Đăng nhập chưa thành công\'))">Đăng nhập Google để đồng bộ và chạy đua</button></div>';
+  if(!window.cloud||!window.cloud.ready)return'<div class="empty">Chưa bật đồng bộ. Hãy kiểm tra cấu hình Firebase trong config.js.</div>';
+  if(!user)return'<div class="row"><button class="btn" onclick="cloud.signIn().catch(()=>toast(\'Đăng nhập chưa thành công\'))">Đăng nhập Google để tự động vào đường đua chung</button></div>';
   let h=`<div class="in race-profile"><span>👤 Tên hiển thị</span><input type="text" style="flex:1;margin:0;min-width:100px" value="${esc(S.name)}" onchange="setName(this.value)"><button class="x" onclick="cloud.signOut()">Đăng xuất</button></div><small class="s" id="cs"></small>`;
-  if(!S.room)return h+'<div class="row" style="margin-top:10px"><button class="btn" onclick="newRoom()">＋ Tạo phòng mới</button></div><div class="in" style="justify-content:center"><input type="text" id="rc" style="width:140px;margin:0" placeholder="Mã phòng"><button class="btn g" onclick="joinRoom()">Tham gia</button></div>';
   const wk=dk(mon()),L=(peers||[]).map(p=>Object.assign({},p,{x:p.week===wk?Number(p.xpWeek)||0:0,d:p.week===wk?Number(p.daysWeek)||0:0})).sort((a,b)=>b.x-a.x||String(a.name||'').localeCompare(String(b.name||''),'vi')),
     top=Math.max(0,...L.map(p=>p.x)),cap=Math.max(600,Math.ceil(top*1.15/100)*100),
     PAL=['#ff6b6b','#ffa94d','#ffd43b','#69db7c','#38d9a9','#4dabf7','#9775fa','#f783ac'],colOf=id=>PAL[[...String(id)].reduce((a,c)=>a+c.charCodeAt(0),0)%PAL.length],
-    tail=`<small class="s race-footnote" style="margin-top:10px">XP tuần = XP buổi học (tối đa 300 mỗi ngày) + 30 XP cho mỗi ngày đạt số phút tối thiểu. Tính lại từ thứ Hai · Vạch đích: ${cap} XP.</small><div class="row" style="justify-content:flex-start;margin-top:8px"><button class="x" onclick="leaveRoom()">Rời phòng</button></div>`;
-  h+=`<div class="sub race-room-head" style="margin-top:12px"><span>🏁 Phòng <b>${esc(S.room)}</b><i class="live" title="Cập nhật trực tiếp"></i></span><span class="race-count">${L.length} thành viên đã đồng bộ</span><button class="x" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(S.room)}').then(()=>toast('Đã sao chép mã phòng')).catch(()=>toast('Không sao chép được mã phòng'))">Sao chép mã</button></div>`;
-  if(peers===undefined)return h+'<div class="empty">Đang kết nối và tải danh sách thành viên…</div>'+tail;
-  if(peers===null)return h+'<div class="empty">Không tải được danh sách phòng. Hãy kiểm tra kết nối mạng và quyền truy cập Firebase rồi thử lại.</div><button class="btn g" onclick="startRoom();render()">Thử kết nối lại</button>'+tail;
-  if(!L.length)return h+'<div class="empty">Chưa có thành viên nào đồng bộ vào phòng này. Hãy mở ứng dụng và đăng nhập bằng tài khoản Google.</div>'+tail;
-  const mi=L.findIndex(p=>p.id==user.uid),me=L[mi],nm=p=>esc(p.name||'?');
-  if(raceRank&&mi>=0&&mi+1<raceRank)raceBoom=mi==0?44:26;
+    tail=`<small class="s race-footnote" style="margin-top:10px">Đường đua chung · XP tuần = XP buổi học (tối đa 300 mỗi ngày) + 30 XP cho mỗi ngày đạt số phút tối thiểu. Tính lại từ thứ Hai · Vạch đích: ${cap} XP.</small>`;
+  const count=peers===undefined?'Đang tải…':peers===null?'Lỗi kết nối':`${L.length} thành viên`;
+  h+=`<div class="sub race-room-head" style="margin-top:12px"><span>🌍 <b>Đường đua chung</b><i class="live" title="Cập nhật trực tiếp"></i></span><span class="race-count">${count}</span><button class="x" onclick="refreshRace()">Làm mới</button></div>`;
+  if(peers===undefined)return h+'<div class="empty">Đang kết nối và đăng ký bạn vào đường đua chung…</div>'+tail;
+  if(peers===null)return h+'<div class="empty">Không tải được đường đua chung. Hãy kiểm tra mạng và quyền truy cập Firebase rồi thử lại.</div><button class="btn g" onclick="refreshRace()">Thử kết nối lại</button>'+tail;
+  if(!L.length)return h+'<div class="empty">Chưa có thành viên nào trong đường đua chung. Hãy thử đăng ký lại.</div><button class="btn g" onclick="retryRoomRegistration()">Đăng ký / thử lại</button>'+tail;
+  const mi=L.findIndex(p=>p.id===user.uid),me=L[mi],nm=p=>esc(p.name||'?');
+  if(raceRank&&mi>=0&&mi+1<raceRank)raceBoom=mi===0?44:26;
   if(mi>=0)raceRank=mi+1;
   let msg='';
-  if(L.length<2)msg='Bạn là thành viên đầu tiên đã đồng bộ. Chia sẻ mã phòng cho bạn bè để cùng thi đua!';
-  else if(me){if(mi===0)msg=me.x>L[1].x?`🔥 Bạn đang dẫn đầu, hơn ${nm(L[1])} ${me.x-L[1].x} XP. Giữ vững nhé!`:`⚖️ Bạn và ${nm(L[1])} đang ngang điểm!`;
-    else msg=L[mi-1].x>me.x?`🏃 Bạn đang xếp thứ ${mi+1}. Còn ${L[mi-1].x-me.x} XP để vượt ${nm(L[mi-1])}.`:`⚖️ Bạn và ${nm(L[mi-1])} đang ngang điểm!`}
+  if(L.length<2)msg='Bạn là người đầu tiên trên đường đua chung. Mời bạn bè đăng nhập để cùng thi đua!';
+  else if(me){
+    if(mi===0)msg=me.x>L[1].x?`🔥 Bạn đang dẫn đầu, hơn ${nm(L[1])} ${me.x-L[1].x} XP. Giữ vững nhé!`:`⚖️ Bạn và ${nm(L[1])} đang ngang điểm!`;
+    else msg=L[mi-1].x>me.x?`🏃 Bạn đang xếp thứ ${mi+1}. Còn ${L[mi-1].x-me.x} XP để vượt ${nm(L[mi-1])}.`:`⚖️ Bạn và ${nm(L[mi-1])} đang ngang điểm!`;
+  }
   if(msg)h+=`<div class="rbanner">${msg}</div>`;
-  h+=L.map((p,i)=>{const isMe=p.id==user.uid,pc=Math.max(2,Math.min(96,p.x/cap*100)),pv=racePrev[p.id],from=pv?pv.pc:0,xf=pv?pv.x:0,
+  h+=L.map((p,i)=>{
+    const isMe=p.id===user.uid,pc=Math.max(2,Math.min(96,p.x/cap*100)),pv=racePrev[p.id],from=pv?pv.pc:0,xf=pv?pv.x:0,
       cls=['rr',i===0&&p.x>0?'lead':'',!pv?'ent':pv.rank>i+1?'up':pv.rank<i+1?'dn':''].join(' '),c=isMe?'var(--ac)':colOf(p.id),bg=isMe?'linear-gradient(90deg,var(--ac),var(--ac2))':c;
     racePrev[p.id]={pc,x:p.x,rank:i+1};
-    return`<div class="rr ${cls}" style="--i:${i}"><div class="race-head"><div class="race-person"><span class="rk">${['🥇','🥈','🥉'][i]||(i+1)+'.'}</span><span class="rn">${esc(p.name||'?')}${isMe?' <small>(bạn)</small>':''}<span class="race-level">Cấp ${p.level||1}</span></span></div><div class="race-metrics"><b class="cu" data-from="${xf}" data-to="${p.x}" data-suf=" XP">${p.x} XP</b><span>${p.d}/7 ngày</span><span>🔥 ${p.streak||0}</span></div></div><div class="trk"><i class="fill" style="--from:${from}%;--to:${pc}%;background:${bg}"></i><span class="av${isMe?' me':''}" style="--from:${from}%;--to:${pc}%;background:${c}">${i===0&&p.x>0?'<i class="crown">👑</i>':''}${esc([...(p.name||'?')][0].toUpperCase())}</span><span class="flag">🏁</span></div></div>`}).join('');
-  if(L.length<6)h+=`<div class="race-missing-note">Đang hiển thị ${L.length} thành viên đã đăng ký và đồng bộ. Nếu phòng có ${L.length+1} người trở lên, thành viên còn thiếu cần mở ứng dụng, đăng nhập và vào đúng mã phòng để hồ sơ được đăng ký. ${roomPublishError?'Không cập nhật được hồ sơ phòng này; hãy kiểm tra quyền ghi Firebase.':''}</div>`;
-  else if(roomPublishError)h+='<div class="race-missing-note">Có lỗi khi cập nhật hồ sơ phòng. Hãy kiểm tra kết nối và quyền ghi Firebase.</div>';
-  const prevDate=new Date(mon());prevDate.setDate(prevDate.getDate()-7);const prevKey=dk(prevDate),prevL=L.map(p=>{const hasSavedPrev=p.prevWeek===prevKey&&typeof p.xpPrevWeek==='number'&&p.prevWeekHasData===true;const isStillLastWeek=p.week===prevKey&&typeof p.xpWeek==='number';const known=hasSavedPrev||isStillLastWeek;return Object.assign({},p,{prevKnown:known,px:hasSavedPrev?p.xpPrevWeek:(isStillLastWeek?p.xpWeek:null),pd:hasSavedPrev?(p.daysPrevWeek||0):(isStillLastWeek?(p.daysWeek||0):null)})}).sort((a,b)=>{if(a.prevKnown!==b.prevKnown)return a.prevKnown?-1:1;return (b.px||0)-(a.px||0)});
+    return`<div class="rr ${cls}" style="--i:${i}"><div class="race-head"><div class="race-person"><span class="rk">${['🥇','🥈','🥉'][i]||(i+1)+'.'}</span><span class="rn">${esc(p.name||'?')}${isMe?' <small>(bạn)</small>':''}<span class="race-level">Cấp ${p.level||1}</span></span></div><div class="race-metrics"><b class="cu" data-from="${xf}" data-to="${p.x}" data-suf=" XP">${p.x} XP</b><span>${p.d}/7 ngày</span><span>🔥 ${p.streak||0}</span></div></div><div class="trk"><i class="fill" style="--from:${from}%;--to:${pc}%;background:${bg}"></i><span class="av${isMe?' me':''}" style="--from:${from}%;--to:${pc}%;background:${c}">${i===0&&p.x>0?'<i class="crown">👑</i>':''}${esc([...(p.name||'?')][0].toUpperCase())}</span><span class="flag">🏁</span></div></div>`
+  }).join('');
+  const hasMe=L.some(p=>p.id===user.uid);
+  if(!hasMe){
+    const status=roomPublishBusy?'Đang đăng ký hồ sơ vào đường đua chung…':roomPublishError?roomPublishErrorText():'Tài khoản chưa xuất hiện trong danh sách Firebase.';
+    h+=`<div class="race-missing-note ${roomPublishError?'race-error':''}"><b>⚠ Chưa đăng ký được vào đường đua chung</b><div style="margin-top:4px">${esc(status)}</div><button class="btn g" style="margin-top:8px" onclick="retryRoomRegistration()" ${roomPublishBusy?'disabled':''}>${roomPublishBusy?'Đang xác minh…':'Đăng ký / thử lại'}</button></div>`;
+  }else if(roomPublishError)h+=`<div class="race-missing-note race-error">${esc(roomPublishErrorText())}</div>`;
+  const prevDate=new Date(mon());prevDate.setDate(prevDate.getDate()-7);const prevKey=dk(prevDate),prevL=L.map(p=>{
+    const hasSavedPrev=p.prevWeek===prevKey&&typeof p.xpPrevWeek==='number'&&p.prevWeekHasData===true;
+    const isStillLastWeek=p.week===prevKey&&typeof p.xpWeek==='number';
+    const known=hasSavedPrev||isStillLastWeek;
+    return Object.assign({},p,{prevKnown:known,px:hasSavedPrev?p.xpPrevWeek:(isStillLastWeek?p.xpWeek:null),pd:hasSavedPrev?(p.daysPrevWeek||0):(isStillLastWeek?(p.daysWeek||0):null)});
+  }).sort((a,b)=>{if(a.prevKnown!==b.prevKnown)return a.prevKnown?-1:1;return (b.px||0)-(a.px||0)});
   h+=`<div class="sub race-prev-head"><b>🏆 Xếp hạng tuần trước</b><small class="s">${prevKey}</small></div><small class="s">Điểm được tính từ dữ liệu tuần đã kết thúc. Thành viên chưa đồng bộ sẽ được ghi rõ, không mặc định là 0 XP.</small>`;
-  h+=prevL.map((p,i)=>`<div class="rh race-prev-row"><span><span class="rk">${p.prevKnown?(['🥇','🥈','🥉'][i]||(i+1)+'.'):'—'}</span><span class="rn">${esc(p.name||'?')}${p.id==user.uid?' <small>(bạn)</small>':''} · Cấp ${p.level||1}</span></span><span class="rx"><b>${p.prevKnown?p.px+' XP':'Chưa đồng bộ'}</b>${p.prevKnown?' · '+p.pd+'/7 ngày':''}</span></div>`).join('');
-  return h+tail}
+  h+=prevL.map((p,i)=>`<div class="rh race-prev-row"><span><span class="rk">${p.prevKnown?(['🥇','🥈','🥉'][i]||(i+1)+'.'):'—'}</span><span class="rn">${esc(p.name||'?')}${p.id===user.uid?' <small>(bạn)</small>':''} · Cấp ${p.level||1}</span></span><span class="rx"><b>${p.prevKnown?p.px+' XP':'Chưa đồng bộ'}</b>${p.prevKnown?' · '+p.pd+'/7 ngày':''}</span></div>`).join('');
+  return h+tail;
+}
 // Hiệu ứng sau khi vẽ bảng đua: số XP chạy từ giá trị cũ lên giá trị mới, pháo giấy khi bạn vượt lên. Chỉ chạy khi hiệu ứng đang bật.
 function raceFx(){try{if(!document.body.classList.contains('fx'))return;
   document.querySelectorAll('#race .cu').forEach(e=>{const a=+e.dataset.from,b=+e.dataset.to;if(a===b)return;const t0=performance.now();
@@ -528,8 +620,8 @@ async function reloadNew(){
 setTimeout(chkNew,4000);setInterval(chkNew,30*60*1000);
 if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-lastChk>3e5)chkNew()});
 setInterval(tick,1000);
-// Refresh the room member record periodically so a participant stays registered even during long study sessions.
-setInterval(()=>{if(user&&S.room&&!ro)pubSummary()},45000);
+// Refresh the shared race entry periodically so a signed-in participant stays registered.
+setInterval(()=>{if(user&&cloudSynced&&!ro){ensureGlobalRaceRoom();pubSummary()}},45000);
 // Chỉ cho MỘT tab được ghi dữ liệu (tránh hai tab ghi đè lẫn nhau). Tab đến sau chỉ hiện thông báo.
 window.addEventListener('pagehide',()=>{if(!ro)cache()});
 if(navigator.locks)navigator.locks.request('nhatky-hoc-tap',{ifAvailable:true},lock=>{

@@ -37,9 +37,10 @@ if(cfg&&cfg.apiKey){
       setMine:d=>F.runTransaction(db,async tx=>{const ref=F.doc(db,'users',uid()),snap=await tx.get(ref);const old=snap.exists()?snap.data():null;
         const result={...(old||{}),...d,j:old&&old.j?mergeStates(old,d):d.j,u:Math.max(Number(old&&old.u)||0,Number(d.u)||0,Date.now()),updatedAt:F.serverTimestamp()};tx.set(ref,result);return result}),
       setMember:(r,d)=>F.runTransaction(db,async tx=>{const ref=F.doc(db,'rooms',r,'members',uid()),snap=await tx.get(ref),old=snap.exists()?snap.data():null;
-        // Prefer the summary derived from the newest server-committed personal profile revision.
-        // The timestamp t is only a tie-breaker; client clock skew cannot make an older profile win.
+        // A join always registers the authenticated user's own document in this room.
+        // Do not silently reject a new registration; preserve newer summaries only when the doc already exists.
         if(old){const oldRev=Number(old.sourceRev)||0,newRev=Number(d.sourceRev)||0;if(oldRev>newRev||(oldRev===newRev&&(Number(old.t)||0)>(Number(d.t)||0)))return old;}tx.set(ref,d);return d}),
+      getMember:async r=>{const snap=await F.getDoc(F.doc(db,'rooms',r,'members',uid()));return snap.exists()?snap.data():null},
       delMember:r=>F.deleteDoc(F.doc(db,'rooms',r,'members',uid())),
       watchRoom:(r,cb)=>F.onSnapshot(F.collection(db,'rooms',r,'members'),s=>cb(s.docs.map(x=>Object.assign({id:x.id},x.data())).sort((a,b)=>String(a.id).localeCompare(String(b.id)))),err=>{console.warn('Không đọc được phòng thi đua:',err);cb(null)})};
     window.dispatchEvent(new Event('cloudready'));
