@@ -41,7 +41,7 @@ if(cfg&&cfg.apiKey){
         // The timestamp t is only a tie-breaker; client clock skew cannot make an older profile win.
         if(old){const oldRev=Number(old.sourceRev)||0,newRev=Number(d.sourceRev)||0;if(oldRev>newRev||(oldRev===newRev&&(Number(old.t)||0)>(Number(d.t)||0)))return old;}tx.set(ref,d);return d}),
       delMember:r=>F.deleteDoc(F.doc(db,'rooms',r,'members',uid())),
-      watchRoom:(r,cb)=>F.onSnapshot(F.collection(db,'rooms',r,'members'),s=>cb(s.docs.map(x=>Object.assign({id:x.id},x.data()))),err=>{console.warn('Không đọc được phòng thi đua:',err);cb(null)})};
+      watchRoom:(r,cb)=>F.onSnapshot(F.collection(db,'rooms',r,'members'),s=>cb(s.docs.map(x=>Object.assign({id:x.id},x.data())).sort((a,b)=>String(a.id).localeCompare(String(b.id)))),err=>{console.warn('Không đọc được phòng thi đua:',err);cb(null)})};
     window.dispatchEvent(new Event('cloudready'));
   }catch(e){console.warn('Không tải được Firebase (có thể đang offline):',e)}
 }
