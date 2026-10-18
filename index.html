@@ -4,42 +4,117 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Nhật ký học tập</title>
-<link rel="stylesheet" href="style.css?v=2026-10-18-global-race-v13">
+<link rel="stylesheet" href="style.css?v=2026-10-18-smart-scroll-v14">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 </head>
-
 <body>
-<main>
-<h1>📖 Nhật ký học tập</h1>
-<div class="card" id="hab" style="margin-bottom:12px"></div>
-<div class="card" id="timer"></div>
-<h2>Tổng quan</h2>
-<div class="grid4" id="stats"></div>
-<h2>Tổng kết tuần trước</h2>
-<div class="card" id="recap"></div>
-<h2>Thời gian học</h2>
-<div class="card" id="week"></div>
-<h2>Phân tích dữ liệu học tập</h2>
-<div class="card" id="analytics"></div>
-<h2>Mục tiêu và nhiệm vụ</h2>
-<button class="btn g" style="margin-bottom:10px" onclick="openGoal(0)">＋ Thêm mục tiêu</button><div id="gf"></div>
-<div class="card" id="goals"></div>
-<h2>Chạy đua cùng bạn bè</h2><div class="card" id="race"></div>
-<h2>Cấp độ và mục tiêu ngày/tuần</h2><div class="card" id="lvl"></div>
-<h2>Theo môn</h2><div class="card" id="subj"></div>
-<h2>Loại hoạt động & bài tập</h2><div class="card" id="act"></div>
-<h2>Lịch học</h2><div class="card" id="cal"></div>
-<h2 id="achT">Thành tích</h2>
-<div class="ach" id="ach"></div>
-<h2>Cài đặt & dữ liệu</h2><div class="card" id="set"></div>
-<h2>Lịch sử</h2><button class="btn g" style="margin-bottom:10px" onclick="openEd(0)">＋ Thêm buổi học thủ công</button><div id="ed"></div>
-<div class="card" id="hist"></div>
+<main id="pageTop">
+  <h1>📖 Nhật ký học tập</h1>
+  <div class="quickbar" aria-label="Điều hướng nhanh">
+    <label for="quickJump">Đi nhanh đến</label>
+    <select id="quickJump" onchange="jumpToSection(this.value)">
+      <option value="">Chọn mục…</option>
+      <option value="sec-focus">Học tập</option>
+      <option value="sec-overview">Tổng quan</option>
+      <option value="sec-recap">Tổng kết tuần trước</option>
+      <option value="sec-week">Thời gian học</option>
+      <option value="sec-analytics">Phân tích dữ liệu</option>
+      <option value="sec-goals">Mục tiêu và nhiệm vụ</option>
+      <option value="sec-race">Đường đua chung</option>
+      <option value="sec-level">Cấp độ và mục tiêu ngày/tuần</option>
+      <option value="sec-subjects">Theo môn</option>
+      <option value="sec-activity">Loại hoạt động và bài tập</option>
+      <option value="sec-calendar">Lịch học</option>
+      <option value="sec-achievements">Thành tích</option>
+      <option value="sec-settings">Cài đặt và dữ liệu</option>
+      <option value="sec-history">Lịch sử</option>
+    </select>
+    <button class="quick-top" type="button" onclick="jumpToSection('pageTop')" title="Trở về đầu trang">↑ Đầu trang</button>
+  </div>
+
+  <section class="flow-section" id="sec-focus">
+    <div class="flow-label">01 / Tập trung</div>
+    <div class="card" id="hab" style="margin-bottom:12px"></div>
+    <div class="card" id="timer"></div>
+  </section>
+
+  <section class="flow-section" id="sec-overview">
+    <h2>Tổng quan</h2>
+    <div class="grid4" id="stats"></div>
+  </section>
+
+  <details class="fold" id="sec-recap">
+    <summary><span class="fold-icon">📅</span><span class="fold-name"><b>Tổng kết tuần trước</b><small>Tóm tắt thời gian học, bài tập và nhận xét</small></span></summary>
+    <div class="fold-body"><div class="card" id="recap"></div></div>
+  </details>
+
+  <details class="fold" id="sec-week">
+    <summary><span class="fold-icon">📈</span><span class="fold-name"><b>Thời gian học</b><small>Biểu đồ tuần này, theo môn và 30 ngày</small></span></summary>
+    <div class="fold-body"><div class="card" id="week"></div></div>
+  </details>
+
+  <details class="fold" id="sec-analytics">
+    <summary><span class="fold-icon">🔎</span><span class="fold-name"><b>Phân tích dữ liệu học tập</b><small>So sánh 7, 30 hoặc 90 ngày</small></span></summary>
+    <div class="fold-body"><div class="card" id="analytics"></div></div>
+  </details>
+
+  <section class="flow-section" id="sec-goals">
+    <h2>Mục tiêu và nhiệm vụ</h2>
+    <button class="btn g section-action" style="margin-bottom:10px" onclick="openGoal(0)">＋ Thêm mục tiêu</button>
+    <div id="gf"></div>
+    <div class="card" id="goals"></div>
+  </section>
+
+  <section class="flow-section" id="sec-race">
+    <h2>Chạy đua cùng bạn bè</h2>
+    <div class="card" id="race"></div>
+  </section>
+
+  <details class="fold" id="sec-level">
+    <summary><span class="fold-icon">⭐</span><span class="fold-name"><b>Cấp độ và mục tiêu ngày/tuần</b><small>XP, cấp độ và tiến độ mục tiêu</small></span></summary>
+    <div class="fold-body"><div class="card" id="lvl"></div></div>
+  </details>
+
+  <details class="fold" id="sec-subjects">
+    <summary><span class="fold-icon">📚</span><span class="fold-name"><b>Theo môn</b><small>Phân bổ thời lượng học cho từng môn</small></span></summary>
+    <div class="fold-body"><div class="card" id="subj"></div></div>
+  </details>
+
+  <details class="fold" id="sec-activity">
+    <summary><span class="fold-icon">✍️</span><span class="fold-name"><b>Loại hoạt động và bài tập</b><small>Lý thuyết, bài tập, ôn tập và thực hành</small></span></summary>
+    <div class="fold-body"><div class="card" id="act"></div></div>
+  </details>
+
+  <details class="fold" id="sec-calendar">
+    <summary><span class="fold-icon">🗓️</span><span class="fold-name"><b>Lịch học</b><small>Lịch hoạt động theo ngày trong tháng</small></span></summary>
+    <div class="fold-body"><div class="card" id="cal"></div></div>
+  </details>
+
+  <details class="fold" id="sec-achievements">
+    <summary><span class="fold-icon">🏅</span><span class="fold-name"><b id="achT">Thành tích</b><small>Các huy hiệu đã mở khóa và mục tiêu tiếp theo</small></span></summary>
+    <div class="fold-body"><div class="ach" id="ach"></div></div>
+  </details>
+
+  <details class="fold" id="sec-settings">
+    <summary><span class="fold-icon">⚙️</span><span class="fold-name"><b>Cài đặt và dữ liệu</b><small>Môn học, mục tiêu, giao diện, nhắc học và sao lưu</small></span></summary>
+    <div class="fold-body"><div class="card" id="set"></div></div>
+  </details>
+
+  <details class="fold" id="sec-history">
+    <summary><span class="fold-icon">📜</span><span class="fold-name"><b>Lịch sử học tập</b><small>Buổi học gần đây, chỉnh sửa hoặc nhập thủ công</small></span></summary>
+    <div class="fold-body">
+      <button class="btn g" style="margin:0 0 10px" onclick="openEd(0)">＋ Thêm buổi học thủ công</button>
+      <div id="ed"></div>
+      <div class="card" id="hist"></div>
+    </div>
+  </details>
+  <p class="page-end-note">Cuộn để khám phá thêm · Dùng “Đi nhanh đến” khi muốn chuyển thẳng tới một phần.</p>
 </main>
 <div id="toast"></div>
 <script type="module" src="config.js"></script>
-<script src="app.js?v=2026-10-18-global-race-v13"></script>
+<script src="app.js?v=2026-10-18-smart-scroll-v14"></script>
 <script type="module" src="cloud.js"></script>
 </body>
 </html>

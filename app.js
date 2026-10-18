@@ -1,6 +1,6 @@
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
-const BUILD='2026-10-18-global-race-v13'; // Bản phát hành đồng bộ: chỉ một đường đua chung
+const BUILD='2026-10-18-smart-scroll-v14'; // Bản phát hành: cuộn dọc thông minh, giữ một đường đua chung
 const GLOBAL_RACE_ROOM='XDU92JXZ'; // Giữ namespace hiện tại để thành viên hiện có không bị mất khỏi bảng
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
 const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.subjects bằng rebuildSubj(). Thêm/đổi tên/đổi màu/ẩn môn ngay trong phần Cài đặt.
@@ -10,6 +10,7 @@ const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.sub
 // S được lưu vào localStorage (bộ nhớ của trình duyệt) bằng hàm save().
 let S={sessions:[],active:null,sel:'toan',ach:{},del:{},su:0,goalD:120,goalW:600,pomo:false,rem:'',u:0,ver:1,rev:0,minD:15,goalDays:5,rest:1,room:'',name:'',goals:[],subjects:DEF_SUBJ.map(x=>({...x}))},fin=false,focus=0,topic='',typ='',vN='',vC='',delId=0,hAll=false,EF=null,chM='w',GF=null,cY=new Date().getFullYear(),cM=new Date().getMonth();
 let analyticsRange=7; // khoảng thời gian đang xem trong phần phân tích; không ảnh hưởng dữ liệu lưu trữ
+let goalsShowAll=false; // chỉ hiện ba mục tiêu đầu để trang gọn hơn
 const VER=1; // phiên bản định dạng dữ liệu. Sau này nếu đổi cách lưu, tăng số này và xử lý trong migrate()
 function migrate(o){if(!o||typeof o!='object')return{};
   o.sessions=(Array.isArray(o.sessions)?o.sessions:[]).filter(x=>x&&typeof x.ts=='number'&&typeof x.dur=='number'&&typeof x.subj=='string'); // bỏ bản ghi hỏng
@@ -39,6 +40,18 @@ function toServer(n=0){if(ro||n>3)return;
    .catch(()=>{disk='err';stat()})}
 function stat(){const e=$('sy');if(e)e.textContent={ok:'💾 Dữ liệu đang được lưu vào file data.json trên máy bạn',err:'⚠ Không ghi được data.json — hãy kiểm tra server.py còn chạy không',local:'Đang lưu trong trình duyệt. Chạy server.py để lưu vào file data.json trên máy bạn.'}[disk]}
 const $=id=>document.getElementById(id);
+// Điều hướng nhanh chỉ cuộn tới mục, không chuyển tab hay tải trang mới.
+function jumpToSection(id){
+  if(!id)return;
+  const el=$(id);if(!el)return;
+  const fold=el.matches&&el.matches('details.fold')?el:(el.closest?el.closest('details.fold'):null);
+  if(fold)fold.open=true;
+  const target=id==='pageTop'?document.body:el;
+  const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  target.scrollIntoView({behavior:reduced?'auto':'smooth',block:id==='pageTop'?'start':'start'});
+  const sel=$('quickJump');if(sel)sel.value='';
+}
+
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pad=n=>String(n).padStart(2,'0');
 const dk=t=>{const d=new Date(t);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
@@ -310,16 +323,24 @@ const TT=[['hours','Giờ học mỗi tuần'],['days','Ngày học mỗi tuần
 function weekBy(){const w0=mon(),k0=dk(w0),e=new Date(w0);e.setDate(e.getDate()+6);const k6=dk(e),r={},add=(key,f)=>f(r[key]=r[key]||{sec:0,days:{},n:0});
   S.sessions.forEach(x=>{spans(x).forEach(([k,sec])=>{if(k>=k0&&k<=k6)[x.subj,'*'].forEach(key=>add(key,o=>{o.sec+=sec;o.days[k]=(o.days[k]||0)+sec}))});
     if(x.ts>=w0.getTime())[x.subj,'*'].forEach(key=>add(key,o=>{o.n+=x.n||0}))});return r}
-function goalsUI(){if(!S.goals.length)return'<div class="empty">Chưa có mục tiêu. Ví dụ: "Đạt 8 điểm Hóa" kèm nhiệm vụ "học 8 giờ mỗi tuần".</div>';
-  const wb=weekBy();
-  return S.goals.map(g=>{const d=wb[g.subj||'*']||{sec:0,days:{},n:0},sj=g.subj&&SUBJ[g.subj];
+function goalsUI(){
+  if(!S.goals.length)return'<div class="empty">Chưa có mục tiêu. Ví dụ: "Đạt 8 điểm Hóa" kèm nhiệm vụ "học 8 giờ mỗi tuần".</div>';
+  const wb=weekBy(),shown=goalsShowAll?S.goals:S.goals.slice(0,3);
+  const cards=shown.map(g=>{
+    const d=wb[g.subj||'*']||{sec:0,days:{},n:0},sj=g.subj&&SUBJ[g.subj];
     const rows=g.tasks.map((t,i)=>{
       if(t.t=='check')return`<label class="tk"><input type="checkbox" ${t.done?'checked':''} onchange="chk('${g.id}',${i},this.checked)"> <span${t.done?' style="text-decoration:line-through;opacity:.6"':''}>${esc(t.txt||'')}</span></label>`;
       let cur,lab;const tar=t.v;
       if(t.t=='hours'){cur=d.sec/3600;lab=cur.toFixed(1)+'/'+tar+' giờ'}else if(t.t=='days'){cur=Object.values(d.days).filter(v=>v>=(S.minD||15)*60).length;lab=cur+'/'+tar+' ngày'}else{cur=d.n;lab=cur+'/'+tar+' bài'}
-      return`<div class="sub"><span>${{hours:'Học',days:'Học đủ',problems:'Làm'}[t.t]} ${tar} ${TU[t.t].split('/')[0]} mỗi tuần</span><span>${lab}${cur>=tar?' ✅':''}</span></div><div class="bar"><i style="width:${Math.min(cur/tar,1)*100}%;background:${sj?sj.c:'var(--ac)'}"></i></div>`}).join('');
+      return`<div class="sub"><span>${{hours:'Học',days:'Học đủ',problems:'Làm'}[t.t]} ${tar} ${TU[t.t].split('/')[0]} mỗi tuần</span><span>${lab}${cur>=tar?' ✅':''}</span></div><div class="bar"><i style="width:${Math.min(cur/tar,1)*100}%;background:${sj?sj.c:'var(--ac)'}"></i></div>`
+    }).join('');
     let due='';if(g.due){const n=Math.ceil((new Date(g.due+'T23:59:59')-Date.now())/864e5);due=' · '+(n>=0?'hạn còn '+n+' ngày':'đã quá hạn')}
-    return`<div class="goal"><div class="gh"><b>${esc(g.title)}</b><span><button class="x" onclick="openGoal('${g.id}')">Sửa</button><button class="x" onclick="delGoal('${g.id}')">Xoá</button></span></div><small class="s">${sj?esc(sj.n):'Tất cả môn'}${due}</small>${rows}</div>`}).join('')}
+    return`<div class="goal"><div class="gh"><b>${esc(g.title)}</b><span><button class="x" onclick="openGoal('${g.id}')">Sửa</button><button class="x" onclick="delGoal('${g.id}')">Xoá</button></span></div><small class="s">${sj?esc(sj.n):'Tất cả môn'}${due}</small>${rows}</div>`
+  }).join('');
+  const toggle=S.goals.length>3?`<button class="btn g goals-toggle" onclick="toggleGoals()">${goalsShowAll?'Thu gọn mục tiêu':'Xem tất cả '+S.goals.length+' mục tiêu'}</button>`:'';
+  return cards+toggle;
+}
+function toggleGoals(){goalsShowAll=!goalsShowAll;render()}
 function goalForm(){if(!GF)return'';
   return`<div class="card" style="margin-bottom:10px"><b>${GF.id?'Sửa mục tiêu':'Thêm mục tiêu'}</b><input type="text" placeholder="Mục tiêu (vd: Đạt 8 điểm Hóa)" value="${esc(GF.title)}" oninput="GF.title=this.value">
   <div class="chips" style="margin:6px 0"><button class="chip t ${GF.subj?'':'on'}" onclick="GF.subj='';render()">Tất cả môn</button>${vis(GF.subj).map(k=>`<button class="chip t ${GF.subj==k?'on':''}" onclick="GF.subj='${k}';render()">${esc(SUBJ[k].n)}</button>`).join('')}</div>

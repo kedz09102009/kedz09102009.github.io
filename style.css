@@ -183,7 +183,7 @@ input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shado
 @keyframes updglow{50%{box-shadow:0 12px 34px rgba(0,0,0,.4),0 0 0 6px color-mix(in srgb,var(--ac) 30%,transparent)}}
 
 /* Số phiên bản của giao diện. PHẢI trùng với BUILD trong app.js, nếu không phần mềm sẽ báo "trang đã cũ". */
-:root{--css-build:"2026-10-18-global-race-v13"}
+:root{--css-build:"2026-10-18-smart-scroll-v14"}
 
 /* ===== Tổng kết tuần trước ===== */
 .rc-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}.rc-h b{font-size:30px;letter-spacing:-.02em;color:var(--ac)}
@@ -266,3 +266,49 @@ input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shado
 .race-error{border:1px solid var(--ly);background:color-mix(in srgb,var(--ly) 12%,var(--card));}
 .race-room-head .x{white-space:nowrap}
 @media(max-width:560px){.race-room-head .x{margin-left:0}.race-room-head{row-gap:7px}}
+
+
+/* ===== V14: dòng cuộn thông minh, điều hướng nhanh nhưng không dùng tab ===== */
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+main{max-width:900px;width:100%;box-sizing:border-box;margin:0 auto;padding:14px 16px 34px}
+#pageTop{scroll-margin-top:8px}
+.quickbar{position:sticky;top:5px;z-index:15;display:flex;align-items:center;gap:9px;flex-wrap:nowrap;margin:0 0 18px;padding:8px 10px;border:1px solid var(--bd);border-radius:13px;background:color-mix(in srgb,var(--card) 94%,transparent);backdrop-filter:blur(12px);box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.quickbar label{color:var(--mut);font-size:12px;white-space:nowrap}
+.quickbar select{min-width:0;flex:1;width:100%;padding:7px 10px;border-radius:9px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;font-size:13px}
+.quick-top{flex:none;border:1px solid var(--bd);border-radius:9px;padding:7px 10px;background:transparent;color:var(--tx);font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
+.flow-section{min-width:0;scroll-margin-top:78px;margin:0 0 17px}
+.flow-label{margin:2px 0 8px;color:var(--mut);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.flow-section>h2{margin-top:18px}
+.fold{margin:12px 0;scroll-margin-top:78px;min-width:0}
+.fold>summary{display:flex;align-items:center;gap:10px;list-style:none;cursor:pointer;user-select:none;padding:12px 14px;border:1px solid var(--bd);border-radius:13px;background:var(--card);color:var(--tx);min-width:0}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary::after{content:'＋';margin-left:auto;color:var(--mut);font-size:18px;line-height:1;flex:none}
+.fold[open]>summary{border-bottom-left-radius:8px;border-bottom-right-radius:8px}
+.fold[open]>summary::after{content:'−'}
+.fold-icon{width:25px;flex:none;text-align:center;font-size:17px}
+.fold-name{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.fold-name>b{font-size:14px;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
+.fold-name>small{font-size:11px;font-weight:400;color:var(--mut);line-height:1.4}
+.fold-body{padding-top:8px;min-width:0}
+.fold-body>.card{margin:0;min-width:0}
+.fold-body>.ach{margin:0}
+.section-action{margin-top:0}
+.goals-toggle{margin-top:12px;width:100%}
+.page-end-note{text-align:center;color:var(--mut);font-size:11px;margin:20px 0 0;padding:8px}
+#sec-focus .card,#sec-overview .stat,#sec-goals .card,#sec-race .card{min-width:0}
+@media(max-width:560px){
+  main{padding:10px 10px 28px;max-width:100%}
+  h1{font-size:22px;margin-bottom:10px}
+  .quickbar{top:3px;gap:6px;margin-bottom:14px;padding:7px}
+  .quickbar label{font-size:11px}
+  .quickbar select{font-size:12px;padding:7px 6px}
+  .quick-top{font-size:11px;padding:7px}
+  .flow-section{margin-bottom:13px}
+  .fold{margin:10px 0}
+  .fold>summary{padding:11px 10px;gap:7px}
+  .fold-name>small{font-size:10px}
+  .card{padding:13px}
+  .grid4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .page-end-note{padding-bottom:8px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.fold>summary,.quick-top{transition:none}}
