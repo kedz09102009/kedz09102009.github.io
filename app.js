@@ -1,6 +1,6 @@
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
-const BUILD='2026-10-18-free-score-v18'; // XP thi đấu tính ở Cloudflare Worker/D1, không dùng Cloud Functions
+const BUILD='2026-10-20-free-score-v18-legacy-fix1'; // XP thi đấu tính ở Cloudflare Worker/D1, không dùng Cloud Functions
 const GLOBAL_RACE_ROOM='XDU92JXZ'; // Giữ namespace hiện tại để thành viên hiện có không bị mất khỏi bảng
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
 const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.subjects bằng rebuildSubj(). Thêm/đổi tên/đổi màu/ẩn môn ngay trong phần Cài đặt.
@@ -805,7 +805,7 @@ function startRoom(){
     ensureGlobalRaceRoom();
     pubSummary();
     unR=cloud.watchRoom(GLOBAL_RACE_ROOM,l=>{peers=Array.isArray(l)?l:null;roomReadError=!Array.isArray(l);render()});
-    if(cloud.getLegacyBoard)cloud.getLegacyBoard(GLOBAL_RACE_ROOM).then(rows=>{legacyPeers=Array.isArray(rows)?rows:[];render()}).catch(e=>{console.warn('Chưa tải được thành tích cũ:',e)});
+    if(cloud.getLegacyBoard)cloud.getLegacyBoard(GLOBAL_RACE_ROOM).then(result=>{const rows=Array.isArray(result)?result:(Array.isArray(result?.members)?result.members:[]);legacyPeers=rows;render();if(!rows.length)console.warn('API thành tích cũ không trả về mảng thành viên:',result)}).catch(e=>{legacyPeers=[];render();console.warn('Chưa tải được thành tích cũ:',e)});
   }
 }
 function cloudInit(){
