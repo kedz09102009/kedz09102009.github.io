@@ -114,7 +114,7 @@ function ask(y){const a=S.active;a.ask=false;if(y)a.nx=el()+10800;else if(a.run)
 function stats(){
   const o={q:{},xp:0,pn:0,pc:0,ty:{},tot:0,n:S.sessions.length,long:0,by:{},f5:0,early:0,days:{},bal:0};
   const rec=new Set();
-  S.sessions.forEach(x=>{o.tot+=x.dur;o.xp+=sxp(x); // buổi nhập tay chỉ được nửa XP; số bài tính XP có giới hạn theo thời lượng
+  S.sessions.forEach(x=>{o.tot+=x.dur;o.xp+=sxp(x); // mọi buổi học dùng cùng công thức XP; số bài tính XP có giới hạn theo thời lượng
     o.pn+=x.n||0;o.pc+=x.c||0;(o.q[x.subj]=o.q[x.subj]||[0,0]);o.q[x.subj][0]+=x.n||0;o.q[x.subj][1]+=x.c||0;if(x.type)o.ty[x.type]=(o.ty[x.type]||0)+x.dur;o.by[x.subj]=(o.by[x.subj]||0)+x.dur;if(!x.man)o.long=Math.max(o.long,x.dur);if(x.focus==5)o.f5++;
     if(!x.man&&new Date(x.st||x.ts).getHours()<7)o.early++;spans(x).forEach(([k,sec])=>{o.days[k]=(o.days[k]||0)+sec});
     if(Date.now()-x.ts<6048e5&&x.subj!='khac')rec.add(x.subj)});
@@ -362,7 +362,7 @@ function chk(id,i,v){const g=S.goals.find(y=>String(y.id)===String(id));if(!g)re
 const sig=o=>(o.sessions||[]).map(x=>x.id+':'+(x.m||0)).sort().join()+'|'+Object.keys(o.del||{}).sort().join()+'|'+Object.keys(o.ach||{}).sort().join()+'|'+(o.su||0);
 const mon=()=>{const w=new Date();w.setHours(0,0,0,0);w.setDate(w.getDate()-((w.getDay()+6)%7));return w};
 // XP của một buổi học (dùng chung cho tổng XP và XP tuần)
-function sxp(x){const m=Math.floor(x.dur/60),cap=Math.max(10,m*2),n=Math.min(x.n||0,cap),c=Math.min(x.c||0,n);return Math.round((m+2*n+c)*(x.man?.5:1))}
+function sxp(x){const m=Math.floor(x.dur/60),cap=Math.max(10,m*2),n=Math.min(x.n||0,cap),c=Math.min(x.c||0,n);return Math.round(m+2*n+c)}
 // XP tuần = toàn bộ XP từ các buổi học trong tuần + 30 XP cho mỗi ngày học đủ số phút tối thiểu; không giới hạn XP theo ngày
 function weekFor(w0,s){const end=new Date(w0);end.setDate(end.getDate()+7);const per={};let mins=0,hasData=false;
   S.sessions.forEach(x=>{if(x.ts>=w0.getTime()&&x.ts<end.getTime()){const k=dk(x.ts);per[k]=(per[k]||0)+sxp(x);mins+=x.dur/60;hasData=true}});
