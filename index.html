@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Nhật ký học tập</title>
-<link rel="stylesheet" href="style.css?v=2026-10-18-free-score-v18">
+<link rel="stylesheet" href="style.css?v=2026-10-18-no-daily-xp-cap-v16">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -32,8 +32,6 @@
       <option value="sec-analytics">Phân tích dữ liệu</option>
       <option value="sec-goals">Mục tiêu và nhiệm vụ</option>
       <option value="sec-race">Đường đua chung</option>
-      <option value="sec-score-rules">Công thức và quy tắc điểm</option>
-      <option value="sec-score-history">Lịch sử thay đổi điểm</option>
       <option value="sec-level">Cấp độ và mục tiêu ngày/tuần</option>
       <option value="sec-subjects">Theo môn</option>
       <option value="sec-activity">Loại hoạt động và bài tập</option>
@@ -83,16 +81,6 @@
     <div class="card" id="race"></div>
   </section>
 
-  <details class="fold" id="sec-score-rules">
-    <summary><span class="fold-icon">⚖️</span><span class="fold-name"><b>Công thức và quy tắc điểm</b><small>Công thức XP, điều kiện tính điểm và xử lý vi phạm</small></span></summary>
-    <div class="fold-body"><div class="card" id="scoreRules"></div></div>
-  </details>
-
-  <details class="fold" id="sec-score-history">
-    <summary><span class="fold-icon">📜</span><span class="fold-name"><b>Lịch sử thay đổi điểm</b><small>XP được cộng, tạm giữ, thu hồi hoặc điều chỉnh</small></span></summary>
-    <div class="fold-body"><div class="card" id="scoreHistory"></div><div id="scoreReview"></div></div>
-  </details>
-
   <details class="fold" id="sec-level">
     <summary><span class="fold-icon">⭐</span><span class="fold-name"><b>Cấp độ và mục tiêu ngày/tuần</b><small>XP, cấp độ và tiến độ mục tiêu</small></span></summary>
     <div class="fold-body"><div class="card" id="lvl"></div></div>
@@ -135,7 +123,7 @@
 </main>
 <div id="toast"></div>
 <script type="module" src="config.js"></script>
-<script src="app.js?v=2026-10-18-free-score-v18"></script>
+<script src="app.js?v=2026-10-18-no-daily-xp-cap-v16"></script>
 <script type="module" src="cloud.js"></script>
 </body>
 </html>
