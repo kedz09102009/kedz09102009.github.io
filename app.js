@@ -1,6 +1,6 @@
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
-const BUILD='2026-10-18-no-daily-xp-cap-v16'; // Bản phát hành: bỏ trần XP 300/ngày trên bảng xếp hạng tuần
+const BUILD='2026-10-18-free-score-v18'; // XP thi đấu tính ở Cloudflare Worker/D1, không dùng Cloud Functions
 const GLOBAL_RACE_ROOM='XDU92JXZ'; // Giữ namespace hiện tại để thành viên hiện có không bị mất khỏi bảng
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
 const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.subjects bằng rebuildSubj(). Thêm/đổi tên/đổi màu/ẩn môn ngay trong phần Cài đặt.
@@ -10,6 +10,7 @@ const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.sub
 // S được lưu vào localStorage (bộ nhớ của trình duyệt) bằng hàm save().
 let S={sessions:[],active:null,sel:'toan',ach:{},del:{},su:0,goalD:120,goalW:600,pomo:false,rem:'',u:0,ver:1,rev:0,minD:15,goalDays:5,rest:1,room:'',name:'',goals:[],subjects:DEF_SUBJ.map(x=>({...x}))},fin=false,focus=0,topic='',typ='',vN='',vC='',delId=0,hAll=false,EF=null,chM='w',GF=null,cY=new Date().getFullYear(),cM=new Date().getMonth();
 let analyticsRange=7; // khoảng thời gian đang xem trong phần phân tích; không ảnh hưởng dữ liệu lưu trữ
+let lastScoreHeartbeat=0, scoreHeartbeatBusy=false, scoreReviewReasons={}, scoreReviewDirect={uid:'',sessionId:'',reason:''};
 let goalsShowAll=false; // chỉ hiện ba mục tiêu đầu để trang gọn hơn
 const VER=1; // phiên bản định dạng dữ liệu. Sau này nếu đổi cách lưu, tăng số này và xử lý trong migrate()
 function migrate(o){if(!o||typeof o!='object')return{};
@@ -28,7 +29,7 @@ function subAdd(){const n=$('ns').value.trim();if(!n)return;const P=['#2f8f6e','
 ensureSubjects();
 // Lưu S vào localStorage. Sau mỗi thay đổi dữ liệu: gọi save() rồi render().
 // Hai nơi lưu: localStorage (bản nhớ tạm trong trình duyệt) và, nếu đang chạy server.py, file data.json trên máy.
-let serverMode=false,disk='local',st,ro=false,lastW=0,user=null,peers=undefined,cstat='',unM=null,unR=null,cpt,ppt,cloudHooked=false,cloudSynced=false,cloudRev=0,raceRank=0,racePrev={},raceBoom=0,lastChk=0,updShown=false,roomPublishError=null,roomPublishBusy=false,roomPublishPromise=null,roomReadError=false;
+let serverMode=false,disk='local',st,ro=false,lastW=0,user=null,peers=undefined,cstat='',unM=null,unR=null,cpt,ppt,cloudHooked=false,cloudSynced=false,cloudRev=0,raceRank=0,racePrev={},raceBoom=0,lastChk=0,updShown=false,roomPublishError=null,roomPublishBusy=false,roomPublishPromise=null,roomReadError=false,scoreHistoryCache=null,scoreQueueCache=null;
 function cache(){try{localStorage.setItem('studylog',JSON.stringify(S))}catch(e){}}
 function save(){if(ro)return;cache();cPush();pubSummary();if(serverMode){clearTimeout(st);st=setTimeout(toServer,800)}}
 // Ghi lên server kèm số phiên bản (rev). Nếu data.json đã bị nơi khác sửa (409): gộp dữ liệu rồi ghi lại.
@@ -104,7 +105,7 @@ function spans(x){const out=[];let end=x.ts,left=x.dur*1000,i=0;
 // Phát hiện máy ngủ / đóng trang khi đồng hồ đang chạy: dừng đồng hồ tại lần "còn sống" cuối cùng, rồi hỏi bạn
 function chkGap(now){const a=S.active;if(!a||!a.run||fin)return false;
   const hb=Math.max(a.hb||0,a.run);
-  if(now-hb>3e5){a.acc+=Math.max(0,hb-a.run);a.run=0;a.brk=0;a.gap={ms:now-hb,at:hb};save();return true}
+  if(now-hb>3e5){a.acc+=Math.max(0,hb-a.run);a.run=0;a.brk=0;a.gap={ms:now-hb,at:hb};if(a.scoreSessionId)scoreTimerAction(a,'pause',true);save();return true}
   a.hb=now;return false}
 function gap(y){const a=S.active;if(y)a.acc+=a.gap.ms;a.gap=null;save();render()}
 // Hỏi lại khi đồng hồ chạy liên tục quá lâu (3 giờ, rồi mỗi 3 giờ nữa)
@@ -139,16 +140,124 @@ function checkAch(){const s=stats(),nw=[];
   if(nw.length)toast('Mở khoá thành tích: '+nw.join(', '))}
 // ===== 5. HÀNH ĐỘNG khi bấm nút (bắt đầu, tạm dừng, kết thúc, lưu...) =====
 function pick(k){if(S.active)return;S.sel=k;save();render()}
-function start(){const n=Date.now();S.active={subj:S.sel,acc:0,run:n,st:n};fin=false;focus=0;topic='';typ='';vN='';vC='';save();render()}
-function toggle(){const a=S.active;if(a.brk){a.brk=0;a.run=Date.now()}else if(a.run){a.acc+=Date.now()-a.run;a.run=0}else a.run=Date.now();save();render()}
-function stop(){const a=S.active;a.brk=0;if(a.run){a.acc+=Date.now()-a.run;a.run=0}if(a.acc<6e4){toast('Buổi học dưới 1 phút nên không được lưu');S.active=null;save();render();return}fin=true;save();render()}
-function cancel(){S.active=null;fin=false;save();render()}
+async function start(){
+  if(S.active)return;
+  const n=Date.now(),a={subj:S.sel,acc:0,run:n,st:n,localId:String(n),scoreStatus:'unverified',scoreStarting:false,scoreActionBusy:false};
+  fin=false;focus=0;topic='';typ='';vN='';vC='';S.active=a;
+  if(user&&window.cloud&&cloud.startCompetitiveSession)a.scoreStarting=true;
+  save();render();
+  if(a.scoreStarting){
+    try{
+      const r=await cloud.startCompetitiveSession({subject:a.subj,clientId:a.localId});
+      if(S.active!==a){try{await cloud.cancelCompetitiveSession({sessionId:r.sessionId})}catch(_){};return}
+      a.scoreSessionId=r.sessionId;a.scoreStatus=r.status||'running';a.serverStartedAtMs=r.startedAtMs;lastScoreHeartbeat=Date.now();
+      if(r.status==='paused'){a.acc=Math.max(0,Number(r.elapsedMs)||0);a.run=0}
+    }catch(e){
+      a.scoreStatus='unverified';a.scoreError=e&&e.code||e&&e.message||'functions-unavailable';
+      toast('Đồng hồ vẫn hoạt động, nhưng máy chủ chưa xác nhận phiên. Bạn có thể thử kết nối lại trước khi kết thúc.');
+    }finally{a.scoreStarting=false;cache();render()}
+  }
+}
+async function retryScoreStart(){
+  const a=S.active;
+  if(!a||!a.localId||!user||!cloud||!cloud.startCompetitiveSession||a.scoreStarting||a.scoreActionBusy){toast('Chưa thể khôi phục phiên tính điểm lúc này.');return}
+  a.scoreStarting=true;render();
+  try{
+    const r=await cloud.startCompetitiveSession({subject:a.subj,clientId:a.localId});
+    if(S.active!==a)return;
+    a.scoreSessionId=r.sessionId;a.serverStartedAtMs=r.startedAtMs||a.serverStartedAtMs;
+    lastScoreHeartbeat=Date.now();
+    const status=r.status||'running';
+    if(fin||['stopped','posted','held','revoked'].includes(status)){
+      if(['running','paused'].includes(status)){
+        const stopped=await cloud.stopCompetitiveSession({sessionId:r.sessionId});
+        a.serverStartedAtMs=stopped.startedAtMs||a.serverStartedAtMs;a.serverFinishedAtMs=stopped.finishedAtMs;
+        a.acc=Math.max(0,(Number(stopped.durationSeconds)||0)*1000);a.run=0;a.brk=0;a.scoreStatus='stopped';fin=true;
+      }else{
+        a.acc=Math.max(0,Number(r.elapsedMs)||(Number(r.durationSeconds)||0)*1000);a.run=0;a.brk=0;a.scoreStatus='stopped';fin=true;
+        a.serverFinishedAtMs=r.finishedAtMs||a.serverFinishedAtMs;
+      }
+    }else{
+      a.acc=Math.max(0,Number(r.elapsedMs)||0);a.brk=0;
+      if(status==='paused'){a.run=0;a.scoreStatus='paused'}else{a.run=Date.now();a.scoreStatus='running'}
+    }
+    delete a.scoreError;save();render();
+    toast(fin?'Đã khôi phục phiên máy chủ. Bạn có thể lưu buổi học để xác nhận XP.':'✓ Đã kết nối lại phiên học với máy chủ.');
+  }catch(e){
+    a.scoreStatus='unverified';a.scoreError=e&&e.code||e&&e.message||'reattach-failed';
+    toast('Chưa khôi phục được phiên tính điểm. Thử lại khi kết nối ổn định.');console.warn('Không khôi phục được phiên tính điểm:',e);
+  }finally{if(S.active===a)a.scoreStarting=false;save();render()}
+}
+async function scoreTimerAction(a,action,quiet=false){
+  if(!a||!a.scoreSessionId||!window.cloud)return false;
+  const sid=a.scoreSessionId;
+  try{
+    if(action==='pause')await cloud.pauseCompetitiveSession({sessionId:sid});
+    else if(action==='resume')await cloud.resumeCompetitiveSession({sessionId:sid});
+    else if(action==='stop')return await cloud.stopCompetitiveSession({sessionId:sid});
+    else if(action==='cancel')await cloud.cancelCompetitiveSession({sessionId:sid});
+    lastScoreHeartbeat=Date.now();return true;
+  }catch(e){
+    a.scoreError=e&&e.code||e&&e.message||'server-score-error';a.scoreStatus='unverified';if(action!=='cancel')a.scoreSessionId=null;
+    if(action==='cancel'){try{await cloud.cancelCompetitiveSession({sessionId:sid})}catch(_){}}
+    if(!quiet)toast('Không xác minh được thao tác với máy chủ. Hãy thử kết nối lại trước khi kết thúc phiên để tránh mất XP thi đấu.');
+    console.warn('Tác vụ tính điểm máy chủ thất bại:',e);return false;
+  }
+}
+async function toggle(){
+  const a=S.active;if(!a||a.scoreStarting||a.scoreActionBusy)return;
+  const action=a.brk||!a.run?'resume':'pause';a.scoreActionBusy=true;render();
+  if(a.scoreSessionId)await scoreTimerAction(a,action,true);
+  if(a.brk){a.brk=0;a.run=Date.now()}else if(a.run){a.acc+=Date.now()-a.run;a.run=0}else a.run=Date.now();
+  a.scoreActionBusy=false;save();render();
+}
+async function stop(){
+  const a=S.active;if(!a||a.scoreStarting||a.scoreActionBusy)return;
+  a.scoreActionBusy=true;a.brk=0;if(a.run){a.acc+=Date.now()-a.run;a.run=0}
+  if(a.acc<6e4){if(a.scoreSessionId)await scoreTimerAction(a,'cancel',true);toast('Buổi học dưới 1 phút nên không được lưu');S.active=null;fin=false;save();render();return}
+  if(a.scoreSessionId){
+    try{const r=await cloud.stopCompetitiveSession({sessionId:a.scoreSessionId});a.verifiedDurationSeconds=r.durationSeconds;a.serverStartedAtMs=r.startedAtMs||a.serverStartedAtMs;a.serverFinishedAtMs=r.finishedAtMs;a.scoreStatus='stopped'}
+    catch(e){a.scoreError=e&&e.code||e&&e.message||'stop-failed';a.scoreStatus='unverified';a.scoreSessionId=null;toast('Chưa nhận được xác nhận kết thúc từ máy chủ. Hãy thử kết nối lại trước khi lưu để tránh bỏ sót XP thi đấu.')}
+  }
+  a.scoreActionBusy=false;fin=true;save();render();
+}
+async function cancel(){const a=S.active;if(a&&a.scoreSessionId){const ok=await scoreTimerAction(a,'cancel',true);if(!ok){toast('Chưa xác nhận được việc hủy phiên trên máy chủ. Giữ nguyên buổi này để bạn thử lại, tránh tạo phiên tính điểm bị treo.');render();return}}S.active=null;fin=false;save();render()}
 function setF(n){keep();focus=n;render()}
-function saveS(){const a=S.active,n=Date.now(),N=Math.max(0,+$('fn').value||0),C=Math.min(N,Math.max(0,+$('fc').value||0));
-  S.sessions.push({id:n,subj:a.subj,dur:Math.round(a.acc/1000),ts:n,st:a.st,topic:$('tp').value.trim(),focus:focus,type:typ,n:N,c:C});
-  S.active=null;fin=false;checkAch();save();render()}
-function del(id){if(delId!==id){delId=id;render();setTimeout(()=>{if(delId===id){delId=0;render()}},3000);return}
-  S.sessions=S.sessions.filter(x=>x.id!==id);S.del[id]=Date.now();delId=0;save();render()}
+async function saveS(){
+  const a=S.active;if(!a||!fin)return;
+  const n=Date.now(),N=Math.max(0,Math.floor(+$('fn').value||0)),C=Math.min(N,Math.max(0,Math.floor(+$('fc').value||0)));
+  const localDur=Math.round(a.acc/1000);let item={id:n,subj:a.subj,dur:localDur,ts:a.serverFinishedAtMs||n,st:a.serverStartedAtMs||a.st,topic:$('tp').value.trim(),focus:focus,type:typ,n:N,c:C,scoreStatus:'unverified'};
+  if(a.scoreSessionId&&a.scoreStatus==='stopped'&&window.cloud&&cloud.submitCompetitiveSession){
+    item.scoreSessionId=a.scoreSessionId;item.scoreStatus='pending';
+    try{
+      const r=await cloud.submitCompetitiveSession({sessionId:a.scoreSessionId,questions:N,correct:C,focus,type:typ});
+      item.dur=Number(r.durationSeconds)||localDur;item.ts=Number(r.finishedAtMs)||item.ts;item.st=Number(r.startedAtMs)||item.st;
+      item.scoreStatus=r.status==='posted'?'verified':r.status==='held'?'held':r.status==='revoked'?'revoked':'pending';item.scoreXP=Number(r.xp)||0;item.scorePotentialXP=Number(r.potentialXP)||0;item.scoreReason=r.reason||'';
+    }catch(e){item.scoreError=e&&e.code||e&&e.message||'submit-failed';toast('Buổi học đã lưu trong nhật ký; XP thi đấu đang chờ máy chủ xác nhận. Hãy thử lại ở Lịch sử học tập.')}
+  }else if(a.scoreStatus==='unverified'){
+    item.scoreStatus='unverified';item.scoreError=a.scoreError||'';
+  }
+  S.sessions.push(item);S.active=null;fin=false;checkAch();save();render();if(user)refreshScorePanels(false);
+  if(item.scoreStatus==='verified')toast(`Đã lưu buổi học · Máy chủ xác nhận +${item.scoreXP} XP thi đấu.`);
+  else if(item.scoreStatus==='held')toast('Buổi học đã lưu; XP đang tạm giữ để được kiểm tra.');
+  else if(item.scoreStatus==='unverified')toast('Buổi học đã lưu cá nhân, nhưng chưa được tính vào đường đua.');
+}
+async function retryScoreSession(id){
+  const x=S.sessions.find(y=>String(y.id)===String(id));if(!x||!x.scoreSessionId||!cloud||!cloud.submitCompetitiveSession){toast('Không có mã phiên máy chủ để thử lại.');return}
+  try{const r=await cloud.submitCompetitiveSession({sessionId:x.scoreSessionId,questions:x.n||0,correct:x.c||0,focus:x.focus||0,type:x.type||''});
+    x.dur=Number(r.durationSeconds)||x.dur;x.ts=Number(r.finishedAtMs)||x.ts;x.st=Number(r.startedAtMs)||x.st;x.scoreStatus=r.status==='posted'?'verified':r.status==='held'?'held':r.status==='revoked'?'revoked':'pending';x.scoreXP=Number(r.xp)||0;x.scorePotentialXP=Number(r.potentialXP)||0;x.scoreReason=r.reason||'';delete x.scoreError;save();render();if(user)refreshScorePanels(false);toast(x.scoreStatus==='verified'?`Đã xác nhận +${x.scoreXP} XP.`:x.scoreStatus==='held'?'XP đang tạm giữ chờ duyệt.':'Trạng thái điểm: '+x.scoreStatus);
+  }catch(e){toast('Chưa gửi được điểm lên máy chủ. Kiểm tra kết nối rồi thử lại.');console.warn(e)}
+}
+async function del(id){if(delId!==id){delId=id;render();setTimeout(()=>{if(delId===id){delId=0;render()}},3000);return}
+  const item=S.sessions.find(x=>String(x.id)===String(id));
+  if(item&&item.scoreSessionId&&['verified','held','pending'].includes(item.scoreStatus)){
+    try{
+      try{await cloud.withdrawCompetitiveSession({sessionId:item.scoreSessionId,reason:'Người dùng xóa buổi học khỏi nhật ký.'})}
+      catch(e){if(item.scoreStatus!=='pending')throw e;await cloud.cancelCompetitiveSession({sessionId:item.scoreSessionId})}
+    }catch(e){delId=0;render();toast('Chưa xóa được: cần xác nhận thu hồi XP từ máy chủ trước để giữ bảng điểm nhất quán.');return}
+  }
+  S.sessions=S.sessions.filter(x=>String(x.id)!==String(id));S.del[id]=Date.now();delId=0;save();render();if(user)refreshScorePanels(false);
+}
 // ===== 6. VẼ GIAO DIỆN =====
 // render() dựng lại HTML của cả trang từ dữ liệu S.
 // Vẽ lại giao diện nhưng giữ con trỏ đang gõ dở (nếu có)
@@ -163,6 +272,7 @@ function draw(){if(!SUBJ[S.sel])S.sel=vis('')[0];
   {const td=stats().days[dk(Date.now())]||0,p=Math.min(td/(S.goalD*60),1)*100;t+=`<div class="ring" style="--p:${p.toFixed(1)}"><div class="inr"><div class="clock" id="clk">${clk(el())}</div><small class="s">Hôm nay ${Math.round(td/60)}/${S.goalD} phút</small></div></div>`}if(S.pomo&&a&&!fin)t+='<div class="empty" id="pm" style="padding:0 0 8px"></div>';
   if(a&&a.gap)t+=`<div class="warn">⏸ Đồng hồ tự tạm dừng lúc ${new Date(a.gap.at).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})} vì không có hoạt động trong ${hm(Math.round(a.gap.ms/1000))}. Bạn có học trong khoảng đó không?<div class="row" style="margin-top:8px"><button class="btn g" onclick="gap(0)">Không, bỏ khoảng này</button><button class="btn g" onclick="gap(1)">Có, tính cả</button></div></div>`;
   if(a&&a.ask&&a.run&&!fin)t+=`<div class="warn">⏰ Đồng hồ đã chạy ${hm(el())}. Bạn còn đang học chứ?<div class="row" style="margin-top:8px"><button class="btn g" onclick="ask(0)">Tạm dừng</button><button class="btn g" onclick="ask(1)">Vẫn đang học</button></div></div>`;
+  if(a&&a.scoreStatus==='unverified'&&a.localId&&user&&window.cloud&&cloud.startCompetitiveSession)t+=`<div class="warn"><b>Phiên chưa được máy chủ xác nhận.</b><div>Hãy thử kết nối lại trước khi kết thúc để tránh bỏ lỡ XP thi đấu.</div><button class="btn g" style="margin-top:8px" onclick="retryScoreStart()" ${a.scoreStarting?'disabled':''}>${a.scoreStarting?'Đang kết nối…':'Thử kết nối máy chủ'}</button></div>`;
   if(!a)t+='<div class="row"><button class="btn" onclick="start()">▶ Bắt đầu học</button></div><label class="in" style="justify-content:center;margin-top:10px"><input type="checkbox" '+(S.pomo?'checked':'')+' onchange="cp(this.checked)"> 🍅 Pomodoro (25 phút học / 5 phút nghỉ)</label>';
   else if(!fin)t+=`<div class="row"><button class="btn g" onclick="toggle()">${a.brk?'⏭ Bỏ nghỉ':a.run?'⏸ Tạm dừng':'▶ Tiếp tục'}</button><button class="btn" onclick="stop()">■ Kết thúc</button></div>`;
   else{const ty=['Lý thuyết','Bài tập','Ôn lại','Thực hành'].concat(a.subj=='anh'?['Nghe/nói']:[]);t+=`<input type="text" id="tp" oninput="topic=this.value" placeholder="Hôm nay học nội dung gì? (vd: Đạo hàm, Dao động cơ…)" value="${esc(topic)}"><div style="text-align:center">${ty.map(x=>`<button class="chip t ${typ==x?'on':''}" onclick="setT('${x}')">${x}</button>`).join('')}</div><div class="in" style="justify-content:center">Bài đã làm <input type="number" min="0" id="fn" oninput="vN=this.value" value="${esc(vN)}"> Bài đúng <input type="number" min="0" id="fc" oninput="vC=this.value" value="${esc(vC)}"></div><div class="stars" style="text-align:center"><small style="color:var(--mut)">Mức tập trung</small><br>${[1,2,3,4,5].map(n=>`<button class="${n<=focus?'on':''}" onclick="setF(${n})">★</button>`).join('')}</div><div class="row" style="margin-top:8px"><button class="btn g" onclick="cancel()">Bỏ buổi này</button><button class="btn" onclick="saveS()">Lưu buổi học</button></div>`}
@@ -189,6 +299,10 @@ function draw(){if(!SUBJ[S.sel])S.sel=vis('')[0];
   $('cal').innerHTML=`<div class="in" style="justify-content:space-between"><button class="x" onclick="mv(-1)">◀</button><b>Tháng ${cM+1}/${cY}</b><button class="x" onclick="mv(1)">▶</button></div><div class="cal">${cells}</div><small class="s" style="margin-top:8px">${md} ngày có học · ${hm(mt)} · màu càng đậm càng gần mục tiêu ngày</small>`;
   $('ed').innerHTML=EF?`<div class="card" style="margin-bottom:10px"><b>${EF.id?'Sửa buổi học':'Thêm buổi học'}</b><div class="chips" style="margin:8px 0">${vis(EF.subj).map(k=>`<button class="chip t ${EF.subj==k?'on':''}" onclick="EF.subj='${k}';render()">${SUBJ[k].n}</button>`).join('')}</div><div class="in">Ngày <input type="date" value="${EF.date}" oninput="EF.date=this.value"> Giờ bắt đầu <input type="time" value="${EF.time}" oninput="EF.time=this.value"> <input type="number" min="1" value="${EF.min}" oninput="EF.min=+this.value"> phút</div><input type="text" placeholder="Nội dung đã học" value="${esc(EF.topic)}" oninput="EF.topic=this.value"><div style="text-align:center">${['Lý thuyết','Bài tập','Ôn lại','Thực hành','Nghe/nói'].map(x=>`<button class="chip t ${EF.type==x?'on':''}" onclick="EF.type=EF.type=='${x}'?'':'${x}';render()">${x}</button>`).join('')}</div><div class="in" style="justify-content:center">Bài làm <input type="number" min="0" value="${EF.n}" oninput="EF.n=+this.value"> Bài đúng <input type="number" min="0" value="${EF.c}" oninput="EF.c=+this.value"></div><div class="stars" style="text-align:center">${[1,2,3,4,5].map(n=>`<button class="${n<=EF.focus?'on':''}" onclick="EF.focus=EF.focus==${n}?0:${n};render()">★</button>`).join('')}</div><div class="row" style="margin-top:8px"><button class="btn g" onclick="EF=null;render()">Huỷ</button><button class="btn" onclick="saveEd()">Lưu</button></div></div>`:'';
   $('race').innerHTML=raceUI(s);cs();raceFx();$('goals').innerHTML=goalsUI();$('gf').innerHTML=goalForm();
+  const rulesEl=$('scoreRules'),historyEl=$('scoreHistory'),reviewEl=$('scoreReview');
+  if(rulesEl)rulesEl.innerHTML=scoreRulesUI();
+  if(historyEl)historyEl.innerHTML=scoreHistoryUI();
+  if(reviewEl)reviewEl.innerHTML=scoreReviewUI();
   const mx=Math.max(1,...Object.values(s.by));
   $('subj').innerHTML=Object.keys(SUBJ).filter(k=>!SUBJ[k].hid||s.by[k]).map(k=>`<div class="sub"><span>${SUBJ[k].n}</span><span>${hm(s.by[k]||0)}</span></div><div class="bar"><i style="width:${(s.by[k]||0)/mx*100}%;background:${SUBJ[k].c}"></i></div>`).join('');
   $('week').innerHTML=weekUI();
@@ -198,7 +312,7 @@ function draw(){if(!SUBJ[S.sel])S.sel=vis('')[0];
   $('ach').innerHTML=AL.map(x=>{const[c,t]=x[4](s),u=S.ach[x[0]],p=Math.min(c/t,1)*100;
     return `<div class="a ${u?'':'lock'}"><div class="ic">${x[1]}</div><div style="flex:1"><b>${x[2]}</b><small>${x[3]}</small>${u?`<small>Đạt ${new Date(u).toLocaleDateString('vi-VN')}</small>`:`<div class="bar"><i style="width:${p}%;background:var(--ac)"></i></div>`}</div></div>`}).join('');
   const L=S.sessions.slice().sort((a,b)=>b.ts-a.ts).slice(0,hAll?1e6:30);
-  $('hist').innerHTML=L.length?L.map(x=>`<div class="h"><span class="dot" style="background:${SUBJ[x.subj].c}"></span><div class="m"><div>${esc(x.topic||SUBJ[x.subj].n)}</div><small>${SUBJ[x.subj].n} · ${new Date(x.ts).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${x.type?' · '+x.type:''}${x.n?' · '+x.c+'/'+x.n+' đúng':''}${x.focus?' · '+'★'.repeat(x.focus):''}</small></div><b>${hm(x.dur)}</b><button class="x" onclick="openEd(${x.id})">Sửa</button><button class="x" onclick="del(${x.id})">${delId==x.id?'Chắc chắn?':'Xoá'}</button></div>`).join(''):'<div class="empty">Chưa có buổi học nào. Chọn môn và bấm Bắt đầu!</div>';if(S.sessions.length>30)$('hist').innerHTML+=`<button class="x" onclick="hAll=!hAll;render()">${hAll?'Thu gọn':'Xem tất cả ('+S.sessions.length+')'}</button>`;stat();
+  $('hist').innerHTML=L.length?L.map(x=>{const sub=SUBJ[x.subj]||{n:x.subj||'Khác',c:'#6b7280'};const status=x.scoreStatus==='verified'?`<small class="s score-inline verified">✓ Máy chủ xác nhận · +${Number(x.scoreXP)||0} XP</small>`:x.scoreStatus==='held'?`<small class="s score-inline held">⏸ XP tạm giữ${Number(x.scorePotentialXP)?' · có thể cộng '+x.scorePotentialXP+' XP':''}</small>`:x.scoreStatus==='pending'?`<small class="s score-inline pending">Chờ xác nhận XP <button class="x" onclick="retryScoreSession(${x.id})">Thử lại</button></small>`:x.scoreStatus==='revoked'?'<small class="s score-inline held">XP đã thu hồi</small>':(!x.scoreStatus||x.scoreStatus==='unranked_manual'||x.scoreStatus==='unverified')&&x.man?`<small class="s score-inline">Nhập tay · chưa gửi duyệt <button class="x" onclick="retryManualScore(${x.id})">Gửi xét duyệt</button></small>`:x.scoreStatus==='unverified'?'<small class="s score-inline">Chỉ lưu nhật ký · chưa xác minh trên máy chủ</small>':'';return`<div class="h"><span class="dot" style="background:${sub.c}"></span><div class="m"><div>${esc(x.topic||sub.n)}</div><small>${sub.n} · ${new Date(x.ts).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}${x.type?' · '+x.type:''}${x.n?' · '+x.c+'/'+x.n+' đúng':''}${x.focus?' · '+'★'.repeat(x.focus):''}</small>${status}</div><b>${hm(x.dur)}</b><button class="x" onclick="openEd(${x.id})">Sửa</button><button class="x" onclick="del(${x.id})">${delId==x.id?'Chắc chắn?':'Xoá'}</button></div>`}).join(''):'<div class="empty">Chưa có buổi học nào. Chọn môn và bấm Bắt đầu!</div>';if(S.sessions.length>30)$('hist').innerHTML+=`<button class="x" onclick="hAll=!hAll;render()">${hAll?'Thu gọn':'Xem tất cả ('+S.sessions.length+')'}</button>`;stat();
 }
 const clk2=s=>pad(Math.floor(s/60))+':'+pad(s%60);
 function keep(){vN=$('fn').value;vC=$('fc').value;topic=$('tp').value}
@@ -228,12 +342,59 @@ function mv(d){cM+=d;if(cM<0){cM=11;cY--}if(cM>11){cM=0;cY++}render()}
 function openEd(id){const x=S.sessions.find(y=>y.id===id),t=x?(x.st||x.ts-x.dur*1e3):Date.now(),d=new Date(t),tm=pad(d.getHours())+':'+pad(d.getMinutes());
   EF=x?{id:x.id,k:dk(t)+' '+tm,subj:x.subj,date:dk(t),time:tm,min:Math.max(1,Math.round(x.dur/60)),topic:x.topic||'',type:x.type||'',n:x.n||0,c:x.c||0,focus:x.focus||0}:{id:0,subj:S.sel,date:dk(t),time:tm,min:30,topic:'',type:'',n:0,c:0,focus:0};
   render();try{$('ed').scrollIntoView({block:'center'})}catch(e){}}
-function saveEd(){const t=new Date(EF.date+'T'+(EF.time||'12:00')).getTime();
-  if(isNaN(t)||!(EF.min>0)){toast('Kiểm tra lại ngày giờ và thời lượng');return}
-  const N=Math.max(0,EF.n|0),C=Math.min(N,Math.max(0,EF.c|0)),o={subj:EF.subj,dur:Math.round(EF.min*60),st:t,ts:t+Math.round(EF.min*6e4),topic:EF.topic.trim(),focus:EF.focus,type:EF.type,n:N,c:C,m:Date.now()};
-  if(EF.id&&EF.date+' '+EF.time===EF.k){delete o.st;delete o.ts} // không đổi ngày giờ thì giữ nguyên giờ bắt đầu/kết thúc cũ
-  if(EF.id){const x=S.sessions.find(y=>y.id===EF.id);if(x)Object.assign(x,o)}else S.sessions.push(Object.assign({id:Date.now(),man:1},o));
-  EF=null;checkAch();save();render()}
+async function saveEd(){
+  if(!EF)return;const form=EF,t=new Date(form.date+'T'+(form.time||'12:00')).getTime();
+  if(isNaN(t)||!(form.min>0)||!Number.isFinite(Number(form.min))){toast('Kiểm tra lại ngày giờ và thời lượng');return}
+  const N=Math.max(0,Math.floor(Number(form.n)||0)),C=Math.min(N,Math.max(0,Math.floor(Number(form.c)||0))),o={subj:form.subj,dur:Math.round(form.min*60),st:t,ts:t+Math.round(form.min*6e4),topic:String(form.topic||'').trim(),focus:form.focus||0,type:form.type||'',n:N,c:C,m:Date.now()};
+  if(form.id&&form.date+' '+form.time===form.k){delete o.st;delete o.ts} // không đổi ngày giờ thì giữ giờ cũ
+  if(form.id){
+    const x=S.sessions.find(y=>String(y.id)===String(form.id));
+    if(!x){EF=null;render();toast('Không tìm thấy buổi học cần sửa.');return}
+    const wasScored=!!(x.scoreSessionId&&['verified','held','pending'].includes(x.scoreStatus));
+    const oldManual=!!x.man;
+    if(wasScored){
+      if(!confirm('Buổi học này đã gắn với bảng điểm. Sửa nó sẽ thu hồi điểm bản cũ để tránh sửa dữ liệu mà vẫn giữ XP. Tiếp tục?'))return;
+      try{
+        if(x.scoreStatus==='pending'){
+          try{await cloud.withdrawCompetitiveSession({sessionId:x.scoreSessionId,reason:'Thu hồi bản ghi trước khi chỉnh sửa nhật ký.'})}
+          catch(e){await cloud.cancelCompetitiveSession({sessionId:x.scoreSessionId})}
+        }else await cloud.withdrawCompetitiveSession({sessionId:x.scoreSessionId,reason:'Thu hồi bản ghi trước khi chỉnh sửa nhật ký.'});
+      }catch(e){toast('Chưa sửa được: máy chủ chưa xác nhận việc thu hồi XP. Kiểm tra kết nối rồi thử lại.');return}
+    }
+    Object.assign(x,o);
+    if(wasScored){
+      x.scoreStatus='revoked';x.scoreXP=0;x.scoreReason='Bản ghi cũ đã bị thu hồi trước khi chỉnh sửa.';
+      if(oldManual&&user&&cloud&&cloud.submitManualStudyEntry){
+        // Bản nhập tay đã sửa trở thành một đề nghị mới cần duyệt; bản cũ vẫn được ghi dấu thu hồi.
+        x.scoreSessionId=null;x.manualScoreClientId=null;x.scoreStatus='pending';x.scoreError='';await submitManualCandidate(x);
+      }
+    }else if(!x.scoreStatus)x.scoreStatus='unranked_manual';
+  }else{
+    const item=Object.assign({id:Date.now(),man:1,scoreStatus:'unranked_manual'},o);
+    S.sessions.push(item);EF=null;checkAch();save();render();
+    if(user&&cloud&&cloud.submitManualStudyEntry)await submitManualCandidate(item);
+    return;
+  }
+  EF=null;checkAch();save();render();if(user)refreshScorePanels(false);
+}
+async function submitManualCandidate(item){
+  if(!item||!user||!cloud||!cloud.submitManualStudyEntry){if(item)item.scoreStatus='unranked_manual';return}
+  // Keep one idempotency key across retries. Do not create a second server hold if the
+  // first request succeeded but its response was lost on a flaky mobile connection.
+  if(!item.manualScoreClientId)item.manualScoreClientId=String(item.id)+'-'+String(Date.now());
+  item.scoreStatus='pending';save();render();
+  try{
+    const r=await cloud.submitManualStudyEntry({clientId:String(item.manualScoreClientId),subject:item.subj,durationSeconds:item.dur,questions:item.n||0,correct:item.c||0,focus:item.focus||0,type:item.type||'',finishedAtMs:item.ts});
+    item.scoreSessionId=r.sessionId;item.scoreStatus=r.status==='held'?'held':r.status==='revoked'?'revoked':'pending';item.scorePotentialXP=Number(r.potentialXP)||0;item.scoreXP=0;item.scoreReason='Bản nhập tay cần người quản trị xác minh trước khi tính vào đường đua.';
+    save();render();refreshScorePanels(false);toast('Bản ghi nhập tay đã gửi; XP đang tạm giữ chờ xác minh.');
+  }catch(e){item.scoreStatus='unverified';item.scoreError=e&&e.code||e&&e.message||'manual-submit-failed';save();render();toast('Đã lưu nhật ký, nhưng chưa gửi được bản ghi nhập tay để xét XP.');console.warn('Không gửi được bản nhập tay:',e)}
+}
+async function retryManualScore(id){
+  const item=S.sessions.find(x=>String(x.id)===String(id));
+  if(!item||!item.man){toast('Không tìm thấy bản ghi nhập tay.');return}
+  if(!user||!cloud||!cloud.submitManualStudyEntry){toast('Hãy đăng nhập và kết nối máy chủ trước khi gửi xét duyệt.');return}
+  await submitManualCandidate(item);
+}
 async function ics(){if(!S.rem){toast('Hãy đặt giờ nhắc trước');return}try{const st=dk(Date.now()).replace(/-/g,'')+'T'+S.rem.replace(':','')+'00';
   await sv('nhac-hoc.ics',['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//NhatKyHocTap//VI','BEGIN:VEVENT','UID:nhatky-hoc@local','DTSTAMP:'+new Date().toISOString().replace(/[-:]|\.\d+/g,''),'DTSTART:'+st,'DURATION:PT1H','RRULE:FREQ=DAILY','SUMMARY:📖 Đến giờ học','BEGIN:VALARM','TRIGGER:PT0S','ACTION:DISPLAY','DESCRIPTION:Đến giờ học','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n'))}catch(e){}}
 // Tải một file về máy (dùng cho sao lưu và file lịch nhắc)
@@ -242,16 +403,30 @@ async function exp(){try{await sv('nhat-ky-hoc-tap-'+dk(Date.now())+'.json',JSON
 function imp(i,rep){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!Array.isArray(o.sessions)||(o.ver||1)>VER)throw 0;
     if(rep){if(!confirm('Thay thế TOÀN BỘ dữ liệu hiện tại bằng nội dung file này?'))return;const k=S.rev,a=S.active;Object.assign(S,migrate(o),{rev:k,active:a})}else merge(migrate(o));
     ensureSubjects();checkAch();save();render();toast((rep?'Đã khôi phục ':'Đã gộp ')+o.sessions.length+' buổi học từ file')}catch(e){toast('File không hợp lệ')}};r.readAsText(f);i.value=''}
+// Heartbeat gửi đều khi bộ đếm đang chạy. Nếu trang bị ngủ hoặc ngừng hoạt động quá lâu, máy chủ tự dừng và chỉ tính thời gian đến nhịp cuối cùng + khoảng đệm 2 phút.
+async function sendScoreHeartbeat(a){
+  if(!a||!a.scoreSessionId||!a.run||!user||!cloud||!cloud.heartbeatCompetitiveSession||scoreHeartbeatBusy||Date.now()-lastScoreHeartbeat<30000)return;
+  scoreHeartbeatBusy=true;lastScoreHeartbeat=Date.now();
+  try{
+    const r=await cloud.heartbeatCompetitiveSession({sessionId:a.scoreSessionId});
+    if(r&&r.paused&&S.active===a){
+      a.acc=Math.max(0,(Number(r.durationSeconds)||0)*1000);a.run=0;a.brk=0;a.scoreStatus='paused';
+      a.serverPausedByHeartbeat=true;save();render();toast('⏸ Máy chủ tự tạm dừng vì thiếu tín hiệu hoạt động. Thời gian sau nhịp xác nhận cuối không được tính.');
+    }
+  }catch(e){console.warn('Chưa gửi được nhịp xác nhận phiên học:',e)}
+  finally{scoreHeartbeatBusy=false}
+}
 // ===== 7. ĐỒNG HỒ chạy mỗi giây: cập nhật giờ, Pomodoro (25p học = 15e5 ms, 5p nghỉ = 3e5 ms), nhắc học =====
 function tick(){if(ro)return;wake();const a=S.active;
   if(a&&!fin){const now=Date.now();
     if(chkGap(now)){ping('⏸ Đồng hồ tự tạm dừng vì không có hoạt động quá lâu');render();return}
+    if(a.run&&a.scoreSessionId)sendScoreHeartbeat(a);
     if(!a.ask&&a.run&&el()>(a.nx||10800)){a.ask=true;ping('⏰ Đồng hồ đã chạy '+hm(el())+'. Bạn còn đang học chứ?');render();return}
     if(now-lastW>15e3){lastW=now;if(!ro)cache()}
     const c=$('clk'),n=el();if(c)c.textContent=clk(n);
     if(S.pomo){
-      if(a.run&&a.acc+now-a.run-(a.blk||0)>=15e5){a.acc+=now-a.run;a.run=0;a.blk=a.acc;a.brk=now+3e5;ping('🍅 Đủ 25 phút! Nghỉ 5 phút nhé');save();render()}
-      else if(a.brk&&now>=a.brk){a.brk=0;a.run=now;ping('Hết giờ nghỉ, học tiếp nào!');save();render()}
+      if(a.run&&a.acc+now-a.run-(a.blk||0)>=15e5){a.acc+=now-a.run;a.run=0;a.blk=a.acc;a.brk=now+3e5;if(a.scoreSessionId)scoreTimerAction(a,'pause',true);ping('🍅 Đủ 25 phút! Nghỉ 5 phút nhé');save();render()}
+      else if(a.brk&&now>=a.brk){a.brk=0;a.run=now;if(a.scoreSessionId)scoreTimerAction(a,'resume',true);ping('Hết giờ nghỉ, học tiếp nào!');save();render()}
       const p=$('pm');if(p)p.textContent=a.brk?'☕ Nghỉ còn '+clk2(Math.max(0,Math.ceil((a.brk-now)/1000))):a.run?'🍅 Còn '+clk2(Math.max(0,Math.ceil((15e5-(a.acc+now-a.run-(a.blk||0)))/1000)))+' đến giờ nghỉ':''}
     document.title=a.run?clk(n)+' · Đang học':a.brk?'☕ Nghỉ còn '+clk2(Math.max(0,Math.ceil((a.brk-now)/1000))):a.gap?'⏸ Đã tạm dừng':'Nhật ký học tập'}
   if(S.rem){const d=new Date(),k=dk(d);
@@ -465,12 +640,110 @@ function cPush(){if(!user||ro||!cloudSynced||!window.cloud||!cloud.setMine)retur
     // The cloud transaction returns the merged profile. Adopt it so phone and desktop converge,
     // instead of letting whichever device writes last erase sessions from the other device.
     if(latest&&latest.j)cAdopt(latest);cstat='ok';cs()}catch(e){cstat='err';cs();console.warn('Đồng bộ hồ sơ chưa thành công:',e)}},1200)}
+function scoreRulesUI(){
+  return `<div class="score-policy">
+    <p><b>Phiên bản quy tắc: 1 · Múi giờ: Việt Nam (UTC+7)</b></p>
+    <p>Điểm thi đấu chính thức chỉ do máy chủ xác nhận. Dữ liệu cũ trước khi bật hệ thống điểm máy chủ vẫn nằm trong nhật ký cá nhân nhưng <b>không tự cộng vào bảng xếp hạng chính thức</b>, vì không thể xác minh độc lập.</p>
+    <p>Trong giai đoạn chuyển đổi, thành viên có hồ sơ bảng đua cũ chưa được máy chủ xác minh sẽ vẫn được liệt kê nhưng không được xếp hạng bằng điểm cũ. Mỗi thành viên cần đăng nhập bản hiện tại ít nhất một lần để máy chủ khởi tạo hồ sơ điểm chính thức.</p>
+    <h3>Công thức XP mỗi buổi</h3>
+    <div class="score-formula"><code>m = floor(thời lượng được máy chủ xác nhận / 60)</code><br><code>n = min(bài tự khai, max(10, 2 × m))</code><br><code>c = min(bài đúng tự khai, n)</code><br><code>XP buổi = round(m + 2 × n + c)</code></div>
+    <p>Số bài và số bài đúng do người học khai báo, được giới hạn theo thời lượng; ứng dụng không tuyên bố rằng máy chủ có thể tự xác minh từng đáp án. Bản ghi nhập tay được tính hệ số 0,5 để đề xuất XP và luôn tạm giữ chờ duyệt.</p>
+    <h3>Quy tắc cuộc đua</h3>
+    <ul>
+      <li>Buổi tính điểm phải dài ít nhất 1 phút và được bắt đầu/kết thúc bằng đồng hồ máy chủ.</li>
+      <li>XP tuần = tổng XP của các buổi đã được duyệt trong tuần đó + 30 XP cho mỗi ngày có ít nhất 15 phút học bằng phiên đồng hồ đã xác minh.</li>
+      <li>Không giới hạn XP theo ngày. Điểm của một buổi được gán vào tuần mà buổi đó kết thúc; thưởng ngày được tính theo ngày lịch Việt Nam.</li>
+      <li>Mỗi tài khoản chỉ được có một phiên tính điểm đang chạy tại một thời điểm. Nhịp xác nhận định kỳ giúp dừng phiên khi trang/ngắt mạng ngủ quá lâu; thời gian sau nhịp hợp lệ cuối cùng có thể không được tính.</li>
+      <li>Một phiên đồng hồ dài hơn 6 giờ sẽ tạm giữ. Bản nhập tay tối đa 12 giờ và trong 90 ngày gần đây cũng tạm giữ cho tới khi quản trị viên duyệt.</li>
+      <li>Chỉnh sửa/xóa một bản ghi đã tính điểm sẽ thu hồi điểm của bản ghi cũ trước; mọi cộng, giữ, duyệt hoặc thu hồi đều ghi vào lịch sử.</li>
+      <li>Không trừ XP vì nghỉ học, mất mạng hoặc làm sai bài. Chỉ thu hồi điểm gắn với bản ghi bị xóa, điều chỉnh hoặc không hợp lệ.</li>
+    </ul>
+    <p class="score-policy-note">Tạm giữ nghĩa là điểm tiềm năng chưa được cộng vào bảng. Quản trị viên có thể duyệt, tiếp tục giữ hoặc thu hồi và phải ghi lý do. Điểm trước phiên bản máy chủ được ghi nhận riêng là dữ liệu cũ chưa xác minh.</p>
+  </div>`;
+}
+function scoreEventName(type){return ({
+  earned:'Cộng XP từ buổi học đã xác minh',daily_bonus:'Thưởng ngày học đủ chuẩn',daily_bonus_removed:'Thu hồi thưởng ngày sau khi dữ liệu thay đổi',
+  held:'XP tạm giữ chờ kiểm tra',withdrawn:'Thu hồi theo yêu cầu xóa/chỉnh sửa',held_by_admin:'Quản trị viên tạm giữ XP',released:'Quản trị viên duyệt XP',
+  revoked_by_admin:'Quản trị viên thu hồi XP',revoked:'XP bị thu hồi',event:'Thay đổi điểm'
+})[type]||type||'Thay đổi điểm'}
+function xpDeltaText(n){const v=Number(n)||0;return (v>0?'+':'')+v+' XP'}
+function scoreHistoryUI(){
+  if(!user)return '<div class="empty">Đăng nhập Google để xem lịch sử thay đổi điểm của bạn.</div>';
+  if(!window.cloud||!cloud.getScoreHistory)return '<div class="empty">Chưa kết nối được dịch vụ lịch sử điểm. Hãy triển khai Cloudflare Worker/D1 và điền SCORE_API_URL trong config.js.</div>';
+  if(!scoreHistoryCache)return '<div class="row" style="justify-content:flex-start"><button class="btn g" onclick="refreshScorePanels(true)">Tải lịch sử điểm</button></div><div class="empty">Lịch sử điểm chỉ tải khi cần để tránh gọi máy chủ liên tục.</div>';
+  if(scoreHistoryCache.error)return `<div class="warn">Không tải được lịch sử điểm (${esc(scoreHistoryCache.error)}). <button class="btn g" onclick="refreshScorePanels(true)">Thử lại</button></div>`;
+  const items=scoreHistoryCache.events||[];
+  const rows=items.map(e=>`<div class="score-event"><div class="score-event-main"><b>${esc(scoreEventName(e.type))}</b><small>${e.at?new Date(e.at).toLocaleString('vi-VN'):'Thời điểm chưa có'}${e.sessionId?' · Mã: '+esc(e.sessionId.slice(0,24)):''}${e.actorUid?(e.actorUid===user.uid?' · Người thực hiện: bạn':e.actorUid==='system'?' · Hệ thống':' · Quản trị viên'):''}</small><span>${esc(e.reason||'Không có ghi chú')}</span></div><strong class="score-delta ${Number(e.delta)<0?'negative':Number(e.delta)>0?'positive':''}">${xpDeltaText(e.delta)}</strong></div>`).join('');
+  return `<div class="row" style="justify-content:space-between"><small class="s">Tối đa 60 thay đổi gần nhất · Nhật ký phía máy chủ</small><button class="btn g" onclick="refreshScorePanels(true)">Làm mới</button></div>
+    <div class="score-ledger-summary"><b>Điểm được ghi nhận theo sự kiện</b><span>Thứ tự thời gian giảm dần; điểm có thể âm khi bản ghi đã tính bị thu hồi.</span></div>
+    ${rows||'<div class="empty">Chưa có thay đổi điểm nào từ khi hệ thống máy chủ được bật.</div>'}
+    <small class="s">Dữ liệu lịch sử cũ chưa được xác minh không xuất hiện ở đây như một giao dịch điểm mới.</small>`;
+}
+function scoreReviewUI(){
+  if(!user||!scoreHistoryCache||!scoreHistoryCache.isAdmin)return '';
+  const direct=`<details class="score-review-direct"><summary>Tạm giữ XP đã cộng theo mã bản ghi</summary>
+    <p class="s">Dùng khi cần kiểm tra một buổi đã được tính điểm. UID và mã phiên phải lấy từ hồ sơ/lịch sử có thẩm quyền.</p>
+    <label for="score-direct-uid">UID chủ sở hữu</label><input id="score-direct-uid" type="text" value="${esc(scoreReviewDirect.uid)}" oninput="scoreReviewDirect.uid=this.value" placeholder="UID tài khoản Firebase">
+    <label for="score-direct-session">Mã phiên điểm</label><input id="score-direct-session" type="text" value="${esc(scoreReviewDirect.sessionId)}" oninput="scoreReviewDirect.sessionId=this.value" placeholder="sessionId đầy đủ">
+    <label for="score-direct-reason">Lý do tạm giữ (ít nhất 5 ký tự)</label><input id="score-direct-reason" type="text" value="${esc(scoreReviewDirect.reason)}" oninput="scoreReviewDirect.reason=this.value" placeholder="Ví dụ: Thời lượng cần được đối chiếu">
+    <button class="btn g" style="margin-top:8px" onclick="holdPublishedScore()">Tạm giữ và ghi nhật ký</button>
+  </details>`;
+  if(!scoreQueueCache)return `<div class="card score-review-panel"><b>🛡 Hàng đợi duyệt XP</b><p class="s">Chỉ quản trị viên được phép xem và xử lý.</p><button class="btn g" onclick="refreshScorePanels(true)">Tải hàng đợi</button>${direct}</div>`;
+  const items=scoreQueueCache.items||[];
+  const rows=items.map((q,i)=>{const key=encodeURIComponent(String(q.id||q.uid+'__'+q.sessionId));return `<article class="score-review-item"><div class="score-review-head"><b>${esc(q.name||'Người học')}</b><strong>${Number(q.potentialXP)||0} XP tiềm năng</strong></div><small>${q.source==='manual'?'Nhập tay':'Đồng hồ'} · UID ${esc(String(q.uid||'').slice(0,10))}… · ${q.sessionId?'Mã '+esc(String(q.sessionId).slice(0,30)):''}</small><p>${esc(q.reason||'Không có lý do')}</p><label class="score-reason-label" for="score-reason-${i}">Lý do xử lý (ít nhất 5 ký tự)</label><input id="score-reason-${i}" type="text" value="${esc(scoreReviewReasons[key]||'')}" oninput="scoreReviewReasons['${key}']=this.value" placeholder="Ví dụ: Đã đối chiếu với nhật ký…"><div class="row score-review-actions"><button class="btn" onclick="resolveScoreItem('${key}','release')">Duyệt XP</button><button class="btn g" onclick="resolveScoreItem('${key}','revoke')">Thu hồi</button></div></article>`}).join('');
+  return `<div class="card score-review-panel"><b>🛡 Hàng đợi duyệt XP</b><div class="row" style="justify-content:space-between"><small class="s">${items.length} bản ghi đang chờ</small><button class="btn g" onclick="refreshScorePanels(true)">Làm mới</button></div>${rows||'<div class="empty">Không có bản ghi chờ duyệt.</div>'}${direct}</div>`;
+}
+async function refreshScorePanels(showFeedback=false){
+  if(!user||!window.cloud||!cloud.getScoreHistory){scoreHistoryCache=null;scoreQueueCache=null;if(showFeedback)toast('Hãy đăng nhập để xem lịch sử điểm.');render();return}
+  try{
+    const history=await cloud.getScoreHistory();scoreHistoryCache=history||{events:[],isAdmin:false};
+    // Đồng bộ trạng thái mới nhất vào các thẻ nhật ký đang mở trên thiết bị.
+    const newest={};for(const e of scoreHistoryCache.events||[]){if(e.sessionId&&!newest[e.sessionId])newest[e.sessionId]=e}
+    let changed=false;
+    for(const x of S.sessions){if(!x.scoreSessionId)continue;const e=newest[x.scoreSessionId];if(!e)continue;
+      const st=e.status==='posted'?'verified':e.status==='held'?'held':e.status==='revoked'?'revoked':null;
+      if(st&&x.scoreStatus!==st){x.scoreStatus=st;changed=true}
+      if(st==='verified'&&Number(e.delta)>0&&Number(x.scoreXP)!==Number(e.delta)){x.scoreXP=Number(e.delta);changed=true}
+      if(st==='held'&&Number(e.potentialXP)>0&&Number(x.scorePotentialXP)!==Number(e.potentialXP)){x.scorePotentialXP=Number(e.potentialXP);changed=true}
+    }
+    if(changed)cache();
+    if(scoreHistoryCache.isAdmin&&cloud.getScoreReviewQueue){const q=await cloud.getScoreReviewQueue();scoreQueueCache=q||{items:[]}}
+    else scoreQueueCache=null;
+    if(showFeedback)toast('✓ Đã làm mới lịch sử điểm.');
+  }catch(e){scoreHistoryCache={error:e&&e.code||e&&e.message||'history-unavailable',events:[],isAdmin:false};scoreQueueCache=null;if(showFeedback)toast('Chưa tải được lịch sử điểm. Kiểm tra kết nối.');console.warn('Không tải được dữ liệu điểm:',e)}
+  render();
+}
+async function holdPublishedScore(){
+  const ownerUid=String(scoreReviewDirect.uid||'').trim();
+  const sessionId=String(scoreReviewDirect.sessionId||'').trim();
+  const reason=String(scoreReviewDirect.reason||'').trim();
+  if(!ownerUid||!sessionId){toast('Nhập UID và mã phiên đầy đủ.');return}
+  if(reason.length<5){toast('Lý do cần ít nhất 5 ký tự.');return}
+  if(!confirm('Tạm giữ XP của bản ghi này để kiểm tra? Nếu đã được cộng, điểm sẽ tạm thời bị rút khỏi bảng xếp hạng.'))return;
+  try{
+    await cloud.reviewScoreEntry({ownerUid,sessionId,action:'hold',reason});
+    scoreReviewDirect={uid:ownerUid,sessionId,reason:''};
+    await refreshScorePanels(false);
+    toast('Đã tạm giữ bản ghi và ghi lại lý do.');
+  }catch(e){toast('Không thể tạm giữ bản ghi: '+(e&&e.code||e&&e.message||'lỗi máy chủ'));console.warn(e)}
+}
+async function resolveScoreItem(encodedId,action){
+  let queueId='';try{queueId=decodeURIComponent(encodedId)}catch(_){}
+  const q=scoreQueueCache&&scoreQueueCache.items&&scoreQueueCache.items.find(item=>String(item.id||item.uid+'__'+item.sessionId)===queueId);if(!q||!cloud||!cloud.reviewScoreEntry)return;
+  const reason=String(scoreReviewReasons[encodedId]||'').trim();
+  if(reason.length<5){toast('Hãy ghi lý do xử lý, ít nhất 5 ký tự.');return}
+  if(!confirm(action==='release'?'Duyệt và cộng XP cho bản ghi này?':action==='hold'?'Tiếp tục tạm giữ bản ghi này?':'Thu hồi XP của bản ghi này?'))return;
+  try{await cloud.reviewScoreEntry({ownerUid:q.uid,sessionId:q.sessionId,action,reason});delete scoreReviewReasons[encodedId];await refreshScorePanels(false);toast(action==='release'?'Đã duyệt XP.':action==='hold'?'Đã ghi nhận tiếp tục tạm giữ.':'Đã thu hồi XP.')}catch(e){toast('Không xử lý được: '+(e&&e.code||e&&e.message||'lỗi máy chủ'));console.warn(e)}
+}
+
 function roomPublishErrorText(){
   const e=String(roomPublishError||'');
-  if(e.includes('permission-denied'))return 'Firebase đã từ chối đăng ký. Cần kiểm tra Firestore Security Rules để cho phép người dùng đăng ký hồ sơ của chính tài khoản mình trong đường đua chung.';
+  if(e.includes('permission-denied'))return 'Worker từ chối thao tác này. Nếu đang duyệt điểm, hãy kiểm tra biến ADMIN_UIDS; nếu không, hãy kiểm tra mã đăng nhập và cấu hình Worker.';
   if(e.includes('unavailable')||e.includes('network')||e.includes('deadline-exceeded'))return 'Không kết nối được Firebase. Kiểm tra mạng rồi nhấn thử lại.';
-  if(e.includes('verification-failed'))return 'Đã gửi yêu cầu đăng ký nhưng chưa xác nhận được hồ sơ trên đường đua chung. Hãy thử lại.';
-  return 'Chưa đăng ký được thành viên ('+e.slice(0,90)+'). Hãy thử lại hoặc kiểm tra quyền truy cập Firebase vào đường đua chung.';
+  if(e.includes('score-api-not-configured')||e.includes('not-found'))return 'Backend tính điểm chưa được cấu hình. Hãy triển khai Cloudflare Worker/D1 rồi điền SCORE_API_URL trong config.js.';
+  if(e.includes('failed-precondition'))return 'Tài khoản có phiên chấm điểm chưa kết thúc. Hãy quay lại bộ đếm đang học và kết thúc hoặc hủy phiên đó.';
+  if(e.includes('verification-failed'))return 'Máy chủ đã nhận yêu cầu nhưng chưa thấy hồ sơ trong bảng đua. Hãy thử làm mới sau vài giây.';
+  return 'Chưa đăng ký được thành viên ('+e.slice(0,110)+'). Kiểm tra địa chỉ Worker, Firebase Project ID và kết nối.';
 }
 async function publishRoomMember(showFeedback=false){
   if(!user||ro||!cloudSynced||S.room!==GLOBAL_RACE_ROOM||!window.cloud||!cloud.ready||!cloud.setMember)return false;
@@ -480,8 +753,9 @@ async function publishRoomMember(showFeedback=false){
   roomPublishBusy=true;roomPublishError=null;render();
   roomPublishPromise=(async()=>{
     try{
-      await cloud.setMember(room,summary());
-      // Verify that the document was actually written and is visible to this signed-in user.
+      if(!cloud.ensureCompetition)throw new Error('score-api-not-configured');
+      await cloud.ensureCompetition({name:S.name||'Người học'});
+      // Verify that the backend-created document is visible through the read-only public leaderboard.
       if(cloud.getMember){const saved=await cloud.getMember(room);if(!saved)throw new Error('verification-failed')}
       if(S.room!==room||!user||user.uid!==uid)return false;
       roomPublishError=null;
@@ -498,7 +772,7 @@ async function publishRoomMember(showFeedback=false){
   if(showFeedback)toast(ok?'✓ Đã đăng ký và xác nhận thành viên trong phòng.':roomPublishErrorText());
   return ok;
 }
-function pubSummary(){if(!user||ro||!cloudSynced||S.room!==GLOBAL_RACE_ROOM||!window.cloud||!cloud.ready)return;clearTimeout(ppt);ppt=setTimeout(()=>publishRoomMember(false),650)}
+function pubSummary(){/* Điểm thi đấu chính thức chỉ do Cloudflare Worker/D1 tính. */}
 function retryRoomRegistration(){publishRoomMember(true)}
 function refreshRoom(){startRoom();publishRoomMember(true)}
 function ensureGlobalRaceRoom(){
@@ -543,11 +817,14 @@ function cloudInit(){
       if(!S.name&&u.displayName){S.name=u.displayName;S.su=Math.max(Date.now(),(Number(S.su)||0)+1);cache()}
       ensureGlobalRaceRoom();
       unM=cloud.watchMine(d=>{
+        const firstSync=!cloudSynced;
         cloudSynced=true;
         if(d)cAdopt(d);else cPush();
         ensureGlobalRaceRoom();
-        // Once the profile is hydrated, listen to and publish the member record in the one shared race.
-        startRoom();pubSummary();cstat='ok';cs();render();
+        // Board membership and official XP are established by the trusted server, never client-written.
+        startRoom();cstat='ok';cs();render();
+        if(firstSync)publishRoomMember(false);
+        refreshScorePanels(false);
       });
       startRoom();
     }else{
@@ -557,22 +834,31 @@ function cloudInit(){
     render();
   });
 }
-function setName(v){S.name=v.trim().slice(0,30);S.su=Math.max(Date.now(),(Number(S.su)||0)+1);save();render()}
+function setName(v){S.name=v.trim().slice(0,30);S.su=Math.max(Date.now(),(Number(S.su)||0)+1);save();render();if(user&&cloud&&cloud.updateCompetitionName)cloud.updateCompetitionName({name:S.name}).then(()=>{roomPublishError=null;render()}).catch(e=>{roomPublishError=e&&e.code||e&&e.message||'name-update-failed';render();toast('Tên đã lưu cá nhân nhưng chưa cập nhật được lên bảng đua.')})}
 function refreshRace(){startRoom();publishRoomMember(true)}
 function retryRoomRegistration(){publishRoomMember(true)}
 function raceUI(s){
   if(!window.cloud||!window.cloud.ready)return'<div class="empty">Chưa bật đồng bộ. Hãy kiểm tra cấu hình Firebase trong config.js.</div>';
   if(!user)return'<div class="row"><button class="btn" onclick="cloud.signIn().catch(()=>toast(\'Đăng nhập chưa thành công\'))">Đăng nhập Google để tự động vào đường đua chung</button></div>';
   let h=`<div class="in race-profile"><span>👤 Tên hiển thị</span><input type="text" style="flex:1;margin:0;min-width:100px" value="${esc(S.name)}" onchange="setName(this.value)"><button class="x" onclick="cloud.signOut()">Đăng xuất</button></div><small class="s" id="cs"></small>`;
-  const wk=dk(mon()),L=(peers||[]).map(p=>Object.assign({},p,{x:p.week===wk?Number(p.xpWeek)||0:0,d:p.week===wk?Number(p.daysWeek)||0:0})).sort((a,b)=>b.x-a.x||String(a.name||'').localeCompare(String(b.name||''),'vi')),
+  const wk=dk(mon()),allPeers=(peers||[]).map(p=>Object.assign({},p,{scoreVerified:Number(p.scorePolicyVersion)===1})),
+    // A legacy room document may contain points created by client-side code. Keep the person
+    // visible for migration, but never let an unverified legacy score affect the official rank.
+    L=allPeers.filter(p=>p.scoreVerified).map(p=>Object.assign({},p,{x:p.week===wk?Number(p.xpWeek)||0:0,d:p.week===wk?Number(p.daysWeek)||0:0})).sort((a,b)=>b.x-a.x||String(a.name||'').localeCompare(String(b.name||''),'vi')),
+    U=allPeers.filter(p=>!p.scoreVerified).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'vi')),
     top=Math.max(0,...L.map(p=>p.x)),cap=Math.max(600,Math.ceil(top*1.15/100)*100),
     PAL=['#ff6b6b','#ffa94d','#ffd43b','#69db7c','#38d9a9','#4dabf7','#9775fa','#f783ac'],colOf=id=>PAL[[...String(id)].reduce((a,c)=>a+c.charCodeAt(0),0)%PAL.length],
+    migrationNote=U.length?`<div class="race-migration-note"><b>Chưa xác minh theo luật điểm hiện tại (${U.length})</b><p>Các hồ sơ này chưa được máy chủ chuyển sang công thức XP chính thức. Điểm cũ không được đưa vào thứ hạng để tránh trộn điểm có nguồn gốc khác nhau.</p><div class="race-migration-names">${U.map(p=>`<span>${esc(p.name||'Người học')}</span>`).join('')}</div><small>Để tham gia bảng xếp hạng chính thức, mỗi người cần đăng nhập bản mới ít nhất một lần để máy chủ khởi tạo hồ sơ điểm.</small></div>`:'',
     tail=`<small class="s race-footnote" style="margin-top:10px">Đường đua chung · XP tuần = toàn bộ XP từ buổi học + 30 XP cho mỗi ngày đạt số phút tối thiểu; không giới hạn XP/ngày. Tính lại từ thứ Hai · Vạch đích: ${cap} XP.</small>`;
-  const count=peers===undefined?'Đang tải…':peers===null?'Lỗi kết nối':`${L.length} thành viên`;
+  const count=peers===undefined?'Đang tải…':peers===null?'Lỗi kết nối':`${allPeers.length} thành viên · ${L.length} đã xác minh`;
   h+=`<div class="sub race-room-head" style="margin-top:12px"><span>🌍 <b>Đường đua chung</b><i class="live" title="Cập nhật trực tiếp"></i></span><span class="race-count">${count}</span><button class="x" onclick="refreshRace()">Làm mới</button></div>`;
   if(peers===undefined)return h+'<div class="empty">Đang kết nối và đăng ký bạn vào đường đua chung…</div>'+tail;
-  if(peers===null)return h+'<div class="empty">Không tải được đường đua chung. Hãy kiểm tra mạng và quyền truy cập Firebase rồi thử lại.</div><button class="btn g" onclick="refreshRace()">Thử kết nối lại</button>'+tail;
-  if(!L.length)return h+'<div class="empty">Chưa có thành viên nào trong đường đua chung. Hãy thử đăng ký lại.</div><button class="btn g" onclick="retryRoomRegistration()">Đăng ký / thử lại</button>'+tail;
+  if(peers===null)return h+'<div class="empty">Không tải được đường đua chung. Hãy kiểm tra mạng, SCORE_API_URL và trạng thái Worker/D1 rồi thử lại.</div><button class="btn g" onclick="refreshRace()">Thử kết nối lại</button>'+tail;
+  if(!L.length){
+    h+='<div class="empty">Chưa có điểm nào được xác minh theo công thức hiện tại. Điểm từ hồ sơ cũ sẽ không tự động được tính vào đường đua chính thức.</div>'+migrationNote;
+    h+='<button class="btn g" onclick="retryRoomRegistration()" '+(roomPublishBusy?'disabled':'')+'>Đăng ký / thử lại</button>';
+    return h+tail;
+  }
   const mi=L.findIndex(p=>p.id===user.uid),me=L[mi],nm=p=>esc(p.name||'?');
   if(raceRank&&mi>=0&&mi+1<raceRank)raceBoom=mi===0?44:26;
   if(mi>=0)raceRank=mi+1;
@@ -589,11 +875,14 @@ function raceUI(s){
     racePrev[p.id]={pc,x:p.x,rank:i+1};
     return`<div class="rr ${cls}" style="--i:${i}"><div class="race-head"><div class="race-person"><span class="rk">${['🥇','🥈','🥉'][i]||(i+1)+'.'}</span><span class="rn">${esc(p.name||'?')}${isMe?' <small>(bạn)</small>':''}<span class="race-level">Cấp ${p.level||1}</span></span></div><div class="race-metrics"><b class="cu" data-from="${xf}" data-to="${p.x}" data-suf=" XP">${p.x} XP</b><span>${p.d}/7 ngày</span><span>🔥 ${p.streak||0}</span></div></div><div class="trk"><i class="fill" style="--from:${from}%;--to:${pc}%;background:${bg}"></i><span class="av${isMe?' me':''}" style="--from:${from}%;--to:${pc}%;background:${c}">${i===0&&p.x>0?'<i class="crown">👑</i>':''}${esc([...(p.name||'?')][0].toUpperCase())}</span><span class="flag">🏁</span></div></div>`
   }).join('');
-  const hasMe=L.some(p=>p.id===user.uid);
-  if(!hasMe){
-    const status=roomPublishBusy?'Đang đăng ký hồ sơ vào đường đua chung…':roomPublishError?roomPublishErrorText():'Tài khoản chưa xuất hiện trong danh sách Firebase.';
+  const hasMe=L.some(p=>p.id===user.uid),existsMe=allPeers.some(p=>p.id===user.uid);
+  if(!existsMe){
+    const status=roomPublishBusy?'Đang đăng ký hồ sơ vào đường đua chung…':roomPublishError?roomPublishErrorText():'Tài khoản chưa xuất hiện trong bảng điểm D1.';
     h+=`<div class="race-missing-note ${roomPublishError?'race-error':''}"><b>⚠ Chưa đăng ký được vào đường đua chung</b><div style="margin-top:4px">${esc(status)}</div><button class="btn g" style="margin-top:8px" onclick="retryRoomRegistration()" ${roomPublishBusy?'disabled':''}>${roomPublishBusy?'Đang xác minh…':'Đăng ký / thử lại'}</button></div>`;
+  }else if(!hasMe){
+    h+='<div class="race-missing-note"><b>Hồ sơ điểm của bạn chưa được xác minh.</b><div>Hãy đăng nhập lại bản mới và thử làm mới đường đua. Hồ sơ cũ sẽ không được tính vào thứ hạng chính thức.</div></div>';
   }else if(roomPublishError)h+=`<div class="race-missing-note race-error">${esc(roomPublishErrorText())}</div>`;
+  if(migrationNote)h+=migrationNote;
   const prevDate=new Date(mon());prevDate.setDate(prevDate.getDate()-7);const prevKey=dk(prevDate),prevL=L.map(p=>{
     const hasSavedPrev=p.prevWeek===prevKey&&typeof p.xpPrevWeek==='number'&&p.prevWeekHasData===true;
     const isStillLastWeek=p.week===prevKey&&typeof p.xpWeek==='number';

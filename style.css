@@ -183,7 +183,7 @@ input:focus,select:focus{outline:none;border-color:var(--ac)!important;box-shado
 @keyframes updglow{50%{box-shadow:0 12px 34px rgba(0,0,0,.4),0 0 0 6px color-mix(in srgb,var(--ac) 30%,transparent)}}
 
 /* Số phiên bản của giao diện. PHẢI trùng với BUILD trong app.js, nếu không phần mềm sẽ báo "trang đã cũ". */
-:root{--css-build:"2026-10-18-no-daily-xp-cap-v16"}
+:root{--css-build:"2026-10-18-free-score-v18"}
 
 /* ===== Tổng kết tuần trước ===== */
 .rc-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}.rc-h b{font-size:30px;letter-spacing:-.02em;color:var(--ac)}
@@ -359,3 +359,55 @@ h2.focus-section-title::before{height:16px;flex:none}
   .app-title-mark{width:35px;height:35px;border-radius:10px}
   .app-title-mark svg{width:21px;height:21px}
 }
+
+
+/* ===== Công khai quy tắc và sổ cái điểm máy chủ V17.1 ===== */
+.score-policy{font-size:14px;line-height:1.55}
+.score-policy h3{font-size:14px;font-weight:600;margin:16px 0 6px;color:var(--tx)}
+.score-policy p{margin:8px 0}
+.score-policy ul{padding-left:20px;margin:8px 0}
+.score-policy li{margin:7px 0}
+.score-formula{padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);line-height:1.9;overflow-wrap:anywhere}
+.score-formula code{font-size:12px;white-space:normal;overflow-wrap:anywhere}
+.score-policy-note{padding:10px 12px;border-left:3px solid var(--ac);background:color-mix(in srgb,var(--ac) 7%,transparent);border-radius:0 8px 8px 0}
+.score-ledger-summary{display:flex;flex-direction:column;gap:3px;padding:10px 0;border-bottom:1px solid var(--bd);margin:8px 0}
+.score-ledger-summary span,.score-event small,.score-review-item small{font-size:12px;color:var(--mut);overflow-wrap:anywhere}
+.score-event{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--bd)}
+.score-event:last-of-type{border-bottom:0}
+.score-event-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.score-event-main b{font-size:14px;font-weight:600}
+.score-event-main span{font-size:13px;overflow-wrap:anywhere}
+.score-delta{white-space:nowrap;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.score-delta.positive{color:var(--ac)}.score-delta.negative{color:var(--ly)}
+.score-review-panel{margin-top:12px}
+.score-review-panel>p{margin:6px 0}
+.score-review-item{padding:12px 0;border-bottom:1px solid var(--bd)}
+.score-review-item:last-child{border-bottom:0}
+.score-review-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.score-review-head b{overflow-wrap:anywhere}
+.score-review-head strong{font-size:14px;color:var(--ac);white-space:nowrap}
+.score-review-item p{font-size:13px;margin:7px 0;overflow-wrap:anywhere}
+.score-reason-label{display:block;font-size:12px;color:var(--mut);margin:8px 0 4px}
+.score-review-item input[type=text]{width:100%;box-sizing:border-box;margin:0 0 8px}
+.score-review-actions{justify-content:flex-start;gap:6px}
+.score-review-actions .btn{padding:7px 10px;font-size:13px}
+@media(max-width:560px){
+  .score-event{gap:8px}
+  .score-delta{font-size:13px}
+  .score-review-actions .btn{flex:1;min-width:86px}
+}
+
+/* V17.2 — admin hold workflow + compact audit fields */
+.score-review-direct{border-top:1px solid var(--bd);margin-top:14px;padding-top:12px}
+.score-review-direct summary{cursor:pointer;font-weight:600;padding:4px 0}
+.score-review-direct p{margin:8px 0}
+.score-review-direct label{display:block;font-size:12px;color:var(--mut);margin:9px 0 4px}
+.score-review-direct input[type=text]{width:100%;box-sizing:border-box;margin:0}
+
+
+/* V17.3: show unverified legacy profiles transparently without ranking their old client-side points. */
+.race-migration-note{margin:12px 0;padding:11px 12px;border:1px dashed var(--bd);border-radius:10px;background:color-mix(in srgb,var(--ly) 7%,var(--card));font-size:12px;line-height:1.5;color:var(--mut);overflow-wrap:anywhere}
+.race-migration-note>b{display:block;color:var(--tx);font-size:13px}
+.race-migration-note p{margin:5px 0}
+.race-migration-names{display:flex;flex-wrap:wrap;gap:6px;margin:7px 0}
+.race-migration-names span{padding:3px 7px;border:1px solid var(--bd);border-radius:999px;background:var(--card);color:var(--tx)}
