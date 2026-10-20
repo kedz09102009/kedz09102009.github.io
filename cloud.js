@@ -76,6 +76,10 @@ if (cfg && cfg.apiKey) {
         const r = await api('/api/member?room=' + encodeURIComponent(room || 'XDU92JXZ'));
         return r.member || null;
       },
+      getLegacyBoard: async room => {
+        const r = await api('/api/legacy-board?room=' + encodeURIComponent(room || 'XDU92JXZ'));
+        return Array.isArray(r.members) ? r.members : [];
+      },
       delMember: () => Promise.reject(Object.assign(new Error('Bảng điểm được quản lý bởi máy chủ.'), { code: 'permission-denied' })),
       // D1 không cung cấp Firestore onSnapshot; polling 20 giây thay thế và vẫn có nút làm mới thủ công.
       watchRoom: (room, cb) => {

@@ -29,7 +29,7 @@ function subAdd(){const n=$('ns').value.trim();if(!n)return;const P=['#2f8f6e','
 ensureSubjects();
 // Lưu S vào localStorage. Sau mỗi thay đổi dữ liệu: gọi save() rồi render().
 // Hai nơi lưu: localStorage (bản nhớ tạm trong trình duyệt) và, nếu đang chạy server.py, file data.json trên máy.
-let serverMode=false,disk='local',st,ro=false,lastW=0,user=null,peers=undefined,cstat='',unM=null,unR=null,cpt,ppt,cloudHooked=false,cloudSynced=false,cloudRev=0,raceRank=0,racePrev={},raceBoom=0,lastChk=0,updShown=false,roomPublishError=null,roomPublishBusy=false,roomPublishPromise=null,roomReadError=false,scoreHistoryCache=null,scoreQueueCache=null;
+let serverMode=false,disk='local',st,ro=false,lastW=0,user=null,peers=undefined,cstat='',unM=null,unR=null,cpt,ppt,cloudHooked=false,cloudSynced=false,cloudRev=0,raceRank=0,racePrev={},raceBoom=0,lastChk=0,updShown=false,roomPublishError=null,roomPublishBusy=false,roomPublishPromise=null,roomReadError=false,scoreHistoryCache=null,scoreQueueCache=null,legacyPeers=[];
 function cache(){try{localStorage.setItem('studylog',JSON.stringify(S))}catch(e){}}
 function save(){if(ro)return;cache();cPush();pubSummary();if(serverMode){clearTimeout(st);st=setTimeout(toServer,800)}}
 // Ghi lên server kèm số phiên bản (rev). Nếu data.json đã bị nơi khác sửa (409): gộp dữ liệu rồi ghi lại.
@@ -805,6 +805,7 @@ function startRoom(){
     ensureGlobalRaceRoom();
     pubSummary();
     unR=cloud.watchRoom(GLOBAL_RACE_ROOM,l=>{peers=Array.isArray(l)?l:null;roomReadError=!Array.isArray(l);render()});
+    if(cloud.getLegacyBoard)cloud.getLegacyBoard(GLOBAL_RACE_ROOM).then(rows=>{legacyPeers=Array.isArray(rows)?rows:[];render()}).catch(e=>{console.warn('Chưa tải được thành tích cũ:',e)});
   }
 }
 function cloudInit(){
@@ -849,15 +850,16 @@ function raceUI(s){
     top=Math.max(0,...L.map(p=>p.x)),cap=Math.max(600,Math.ceil(top*1.15/100)*100),
     PAL=['#ff6b6b','#ffa94d','#ffd43b','#69db7c','#38d9a9','#4dabf7','#9775fa','#f783ac'],colOf=id=>PAL[[...String(id)].reduce((a,c)=>a+c.charCodeAt(0),0)%PAL.length],
     migrationNote=U.length?`<div class="race-migration-note"><b>Chưa xác minh theo luật điểm hiện tại (${U.length})</b><p>Các hồ sơ này chưa được máy chủ chuyển sang công thức XP chính thức. Điểm cũ không được đưa vào thứ hạng để tránh trộn điểm có nguồn gốc khác nhau.</p><div class="race-migration-names">${U.map(p=>`<span>${esc(p.name||'Người học')}</span>`).join('')}</div><small>Để tham gia bảng xếp hạng chính thức, mỗi người cần đăng nhập bản mới ít nhất một lần để máy chủ khởi tạo hồ sơ điểm.</small></div>`:'',
-    tail=`<small class="s race-footnote" style="margin-top:10px">Đường đua chung · XP tuần = toàn bộ XP từ buổi học + 30 XP cho mỗi ngày đạt số phút tối thiểu; không giới hạn XP/ngày. Tính lại từ thứ Hai · Vạch đích: ${cap} XP.</small>`;
+    tail=`<small class="s race-footnote" style="margin-top:10px">Đường đua chung · XP tuần = toàn bộ XP từ buổi học + 30 XP cho mỗi ngày đạt số phút tối thiểu; không giới hạn XP/ngày. Tính lại từ thứ Hai · Vạch đích: ${cap} XP.</small>`,
+    legacyUI=legacyPeers.length?`<div class="race-migration-note" style="margin-top:14px"><b>🏅 Thành tích cũ (lưu trữ, không tính vào BXH chính thức)</b><p>Dữ liệu được nhập từ Firebase để giữ lại thành tích trước khi chuyển hệ thống. XP tuần cũ là bản chụp tại thời điểm xuất, không phải điểm đã xác minh trên Worker.</p>${legacyPeers.map(p=>`<div class="rh race-prev-row"><span class="rn">${esc(p.name||'Người học')} · Cấp ${p.level||1}</span><span class="rx"><b>${Number(p.xp)||0} XP cũ</b><small> · Tuần ${esc(p.week||'—')}: ${Number(p.xpWeek)||0} XP</small></span></div>`).join('')}<small class="s">${legacyPeers.length} hồ sơ lưu trữ · Không sửa hoặc xóa nhật ký cá nhân Firebase.</small></div>`:'';
   const count=peers===undefined?'Đang tải…':peers===null?'Lỗi kết nối':`${allPeers.length} thành viên · ${L.length} đã xác minh`;
   h+=`<div class="sub race-room-head" style="margin-top:12px"><span>🌍 <b>Đường đua chung</b><i class="live" title="Cập nhật trực tiếp"></i></span><span class="race-count">${count}</span><button class="x" onclick="refreshRace()">Làm mới</button></div>`;
-  if(peers===undefined)return h+'<div class="empty">Đang kết nối và đăng ký bạn vào đường đua chung…</div>'+tail;
-  if(peers===null)return h+'<div class="empty">Không tải được đường đua chung. Hãy kiểm tra mạng, SCORE_API_URL và trạng thái Worker/D1 rồi thử lại.</div><button class="btn g" onclick="refreshRace()">Thử kết nối lại</button>'+tail;
+  if(peers===undefined)return h+'<div class="empty">Đang kết nối và đăng ký bạn vào đường đua chung…</div>'+legacyUI+tail;
+  if(peers===null)return h+'<div class="empty">Không tải được đường đua chung. Hãy kiểm tra mạng, SCORE_API_URL và trạng thái Worker/D1 rồi thử lại.</div><button class="btn g" onclick="refreshRace()">Thử kết nối lại</button>'+legacyUI+tail;
   if(!L.length){
     h+='<div class="empty">Chưa có điểm nào được xác minh theo công thức hiện tại. Điểm từ hồ sơ cũ sẽ không tự động được tính vào đường đua chính thức.</div>'+migrationNote;
     h+='<button class="btn g" onclick="retryRoomRegistration()" '+(roomPublishBusy?'disabled':'')+'>Đăng ký / thử lại</button>';
-    return h+tail;
+    return h+legacyUI+tail;
   }
   const mi=L.findIndex(p=>p.id===user.uid),me=L[mi],nm=p=>esc(p.name||'?');
   if(raceRank&&mi>=0&&mi+1<raceRank)raceBoom=mi===0?44:26;
@@ -891,7 +893,7 @@ function raceUI(s){
   }).sort((a,b)=>{if(a.prevKnown!==b.prevKnown)return a.prevKnown?-1:1;return (b.px||0)-(a.px||0)});
   h+=`<div class="sub race-prev-head"><b>🏆 Xếp hạng tuần trước</b><small class="s">${prevKey}</small></div><small class="s">Điểm được tính từ dữ liệu tuần đã kết thúc. Thành viên chưa đồng bộ sẽ được ghi rõ, không mặc định là 0 XP.</small>`;
   h+=prevL.map((p,i)=>`<div class="rh race-prev-row"><span><span class="rk">${p.prevKnown?(['🥇','🥈','🥉'][i]||(i+1)+'.'):'—'}</span><span class="rn">${esc(p.name||'?')}${p.id===user.uid?' <small>(bạn)</small>':''} · Cấp ${p.level||1}</span></span><span class="rx"><b>${p.prevKnown?p.px+' XP':'Chưa đồng bộ'}</b>${p.prevKnown?' · '+p.pd+'/7 ngày':''}</span></div>`).join('');
-  return h+tail;
+  return h+legacyUI+tail;
 }
 // Hiệu ứng sau khi vẽ bảng đua: số XP chạy từ giá trị cũ lên giá trị mới, pháo giấy khi bạn vượt lên. Chỉ chạy khi hiệu ứng đang bật.
 function raceFx(){try{if(!document.body.classList.contains('fx'))return;
