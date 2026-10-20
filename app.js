@@ -1,6 +1,6 @@
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
-const BUILD='2026-10-20-free-score-v18-legacy-fix1'; // XP thi đấu tính ở Cloudflare Worker/D1, không dùng Cloud Functions
+const BUILD='2026-10-20-free-score-v18-legacy-fix2'; // XP thi đấu tính ở Cloudflare Worker/D1, không dùng Cloud Functions
 const GLOBAL_RACE_ROOM='XDU92JXZ'; // Giữ namespace hiện tại để thành viên hiện có không bị mất khỏi bảng
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
 const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.subjects bằng rebuildSubj(). Thêm/đổi tên/đổi màu/ẩn môn ngay trong phần Cài đặt.
@@ -846,7 +846,7 @@ function raceUI(s){
     // A legacy room document may contain points created by client-side code. Keep the person
     // visible for migration, but never let an unverified legacy score affect the official rank.
     L=allPeers.filter(p=>p.scoreVerified).map(p=>Object.assign({},p,{x:p.week===wk?Number(p.xpWeek)||0:0,d:p.week===wk?Number(p.daysWeek)||0:0})).sort((a,b)=>b.x-a.x||String(a.name||'').localeCompare(String(b.name||''),'vi')),
-    U=allPeers.filter(p=>!p.scoreVerified).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'vi')),
+    U=[...allPeers.filter(p=>!p.scoreVerified),...legacyPeers.filter(p=>{const id=String(p.uid||p.id||'');return id&&!allPeers.some(q=>String(q.id||q.uid||'')===id)}).map(p=>Object.assign({},p,{id:String(p.uid||p.id),scoreVerified:false,legacyArchive:true}))].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'vi')),
     top=Math.max(0,...L.map(p=>p.x)),cap=Math.max(600,Math.ceil(top*1.15/100)*100),
     PAL=['#ff6b6b','#ffa94d','#ffd43b','#69db7c','#38d9a9','#4dabf7','#9775fa','#f783ac'],colOf=id=>PAL[[...String(id)].reduce((a,c)=>a+c.charCodeAt(0),0)%PAL.length],
     migrationNote=U.length?`<div class="race-migration-note"><b>Chưa xác minh theo luật điểm hiện tại (${U.length})</b><p>Các hồ sơ này chưa được máy chủ chuyển sang công thức XP chính thức. Điểm cũ không được đưa vào thứ hạng để tránh trộn điểm có nguồn gốc khác nhau.</p><div class="race-migration-names">${U.map(p=>`<span>${esc(p.name||'Người học')}</span>`).join('')}</div><small>Để tham gia bảng xếp hạng chính thức, mỗi người cần đăng nhập bản mới ít nhất một lần để máy chủ khởi tạo hồ sơ điểm.</small></div>`:'',
@@ -906,10 +906,10 @@ function confetti(n){const r=$('race').getBoundingClientRect();if(!r)return;cons
     document.body.appendChild(q);setTimeout(()=>q.remove(),1600)}}
 window.addEventListener('cloudready',cloudInit);cloudInit();
 // ===== Báo trang đã cũ =====
-// Định kỳ tải app.js mới nhất từ mạng (bỏ qua bộ nhớ đệm) và so số BUILD. Khác nhau thì hiện thanh báo "tải lại".
-// style.css ghi số phiên bản của nó trong biến --css-build. Nếu khác BUILD thì giao diện (CSS) và mã (JS) đang lệch nhau, tức là một trong hai file còn cũ.
-const cssOld=()=>{try{if(typeof getComputedStyle!='function')return false;return getComputedStyle(document.documentElement).getPropertyValue('--css-build').replace(/["'\s]/g,'')!==BUILD}catch(e){return false}};
-async function chkNew(manual){lastChk=Date.now();if(cssOld()){showNew();return}try{const r=await fetch('app.js?chk='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;
+// Chỉ so BUILD của app.js đang chạy với app.js mới nhất trên máy chủ.
+// Không so --css-build với BUILD của JavaScript vì đây là hai mã phiên bản khác nhau;
+// so sánh chúng sẽ làm thông báo cập nhật xuất hiện liên tục dù app.js đã mới nhất.
+async function chkNew(manual){lastChk=Date.now();try{const r=await fetch('app.js?chk='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;
   const m=new RegExp("const BUILD="+"'([^']+)'").exec(await r.text());
   if(m&&m[1]!==BUILD)showNew();else if(manual)toast('✓ Bạn đang dùng phiên bản mới nhất')}
   catch(e){if(manual)toast('Không kiểm tra được lúc này (có thể đang ngoại tuyến)')}}
