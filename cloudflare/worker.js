@@ -451,7 +451,7 @@ async function handleSubmitManual(env, user, data) {
   if (sid === 'manual-') throw apiError('invalid-argument', 'Mã bản ghi nhập tay không hợp lệ.');
   const old = await first(env.DB, 'SELECT * FROM score_sessions WHERE uid=? AND session_id=?', user.uid, sid);
   if (old) return { sessionId: sid, status: old.status, potentialXP: Number(old.potential_xp) || 0, duplicate: true };
-  const score = scoreForSession(seconds, n, c, true), now = Date.now(), finishedDay = dayKey(finishedAt), wk = weekKey(finishedDay);
+  const score = scoreForSession(seconds, n, c, false), now = Date.now(), finishedDay = dayKey(finishedAt), wk = weekKey(finishedDay);
   const reason = 'Bản ghi nhập tay do người dùng tự khai; chỉ cộng vào đường đua sau khi quản trị viên xác minh.';
   const insertResult = await run(env.DB,
     `INSERT OR IGNORE INTO score_sessions (uid,session_id,client_id,status,subject,source,started_at_ms,elapsed_ms,segments_json,duration_seconds,finished_at_ms,finished_day,week_key,questions,counted_questions,correct,counted_correct,focus,activity_type,potential_xp,xp_base,hold_reason,submitted_at_ms,created_at_ms,updated_at_ms)

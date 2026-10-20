@@ -1,6 +1,6 @@
 // ===== 1. CẤU HÌNH =====
 // Danh sách môn học: n = tên hiển thị, c = màu. Đổi tên/màu ở đây.
-const BUILD='2026-10-20-free-score-v18-legacy-fix2'; // XP thi đấu tính ở Cloudflare Worker/D1, không dùng Cloud Functions
+const BUILD='2026-10-20-free-score-v18-manual-xp-full'; // XP thi đấu tính ở Cloudflare Worker/D1, không dùng Cloud Functions
 const GLOBAL_RACE_ROOM='XDU92JXZ'; // Giữ namespace hiện tại để thành viên hiện có không bị mất khỏi bảng
 const DEF_SUBJ=[{id:'toan',n:'Toán',c:'#3b6fd4',ic:'🧮'},{id:'ly',n:'Lý',c:'#d9822b',ic:'🔭'},{id:'anh',n:'Anh',c:'#c2467a',ic:'🗣️'},{id:'khac',n:'Khác',c:'#6b7280'}];
 const SUBJ={}; // tra cứu nhanh theo id môn; được dựng lại từ S.subjects bằng rebuildSubj(). Thêm/đổi tên/đổi màu/ẩn môn ngay trong phần Cài đặt.
@@ -537,7 +537,7 @@ function chk(id,i,v){const g=S.goals.find(y=>String(y.id)===String(id));if(!g)re
 const sig=o=>(o.sessions||[]).map(x=>x.id+':'+(x.m||0)).sort().join()+'|'+Object.keys(o.del||{}).sort().join()+'|'+Object.keys(o.ach||{}).sort().join()+'|'+(o.su||0);
 const mon=()=>{const w=new Date();w.setHours(0,0,0,0);w.setDate(w.getDate()-((w.getDay()+6)%7));return w};
 // XP của một buổi học (dùng chung cho tổng XP và XP tuần)
-function sxp(x){const m=Math.floor(x.dur/60),cap=Math.max(10,m*2),n=Math.min(x.n||0,cap),c=Math.min(x.c||0,n);return Math.round((m+2*n+c)*(x.man?.5:1))}
+function sxp(x){const m=Math.floor(x.dur/60),cap=Math.max(10,m*2),n=Math.min(x.n||0,cap),c=Math.min(x.c||0,n);return Math.round(m+2*n+c)}
 // XP tuần = toàn bộ XP từ các buổi học trong tuần + 30 XP cho mỗi ngày học đủ số phút tối thiểu; không giới hạn XP theo ngày
 function weekFor(w0,s){const end=new Date(w0);end.setDate(end.getDate()+7);const per={};let mins=0,hasData=false;
   S.sessions.forEach(x=>{if(x.ts>=w0.getTime()&&x.ts<end.getTime()){const k=dk(x.ts);per[k]=(per[k]||0)+sxp(x);mins+=x.dur/60;hasData=true}});
