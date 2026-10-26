@@ -114,7 +114,7 @@ function ask(y){const a=S.active;a.ask=false;if(y)a.nx=el()+10800;else if(a.run)
 function stats(){
   const o={q:{},xp:0,pn:0,pc:0,ty:{},tot:0,n:S.sessions.length,long:0,by:{},f5:0,early:0,days:{},bal:0};
   const rec=new Set();
-  S.sessions.forEach(x=>{o.tot+=x.dur;o.xp+=sxp(x); // mọi buổi học dùng cùng công thức XP; số bài tính XP có giới hạn theo thời lượng
+  S.sessions.forEach(x=>{o.tot+=x.dur;o.xp+=sxp(x); // buổi nhập tay chỉ được nửa XP; số bài tính XP có giới hạn theo thời lượng
     o.pn+=x.n||0;o.pc+=x.c||0;(o.q[x.subj]=o.q[x.subj]||[0,0]);o.q[x.subj][0]+=x.n||0;o.q[x.subj][1]+=x.c||0;if(x.type)o.ty[x.type]=(o.ty[x.type]||0)+x.dur;o.by[x.subj]=(o.by[x.subj]||0)+x.dur;if(!x.man)o.long=Math.max(o.long,x.dur);if(x.focus==5)o.f5++;
     if(!x.man&&new Date(x.st||x.ts).getHours()<7)o.early++;spans(x).forEach(([k,sec])=>{o.days[k]=(o.days[k]||0)+sec});
     if(Date.now()-x.ts<6048e5&&x.subj!='khac')rec.add(x.subj)});
@@ -320,12 +320,36 @@ function weekUI(){const pd=perDay(),w0=mon(),tk=dk(Date.now()),wd=[],DN=['T2','T
 // ===== Mục tiêu và nhiệm vụ =====
 // Mỗi mục tiêu có một môn (hoặc tất cả môn), hạn (tuỳ chọn) và các nhiệm vụ. Nhiệm vụ theo tuần tự tính lại mỗi thứ Hai.
 const TT=[['hours','Giờ học mỗi tuần'],['days','Ngày học mỗi tuần'],['problems','Bài làm mỗi tuần'],['check','Việc cần làm (đánh dấu)']],TU={hours:'giờ/tuần',days:'ngày/tuần',problems:'bài/tuần'};
-function weekBy(){const w0=mon(),k0=dk(w0),e=new Date(w0);e.setDate(e.getDate()+6);const k6=dk(e),r={},add=(key,f)=>f(r[key]=r[key]||{sec:0,days:{},n:0});
-  S.sessions.forEach(x=>{spans(x).forEach(([k,sec])=>{if(k>=k0&&k<=k6)[x.subj,'*'].forEach(key=>add(key,o=>{o.sec+=sec;o.days[k]=(o.days[k]||0)+sec}))});
-    if(x.ts>=w0.getTime())[x.subj,'*'].forEach(key=>add(key,o=>{o.n+=x.n||0}))});return r}
+function weekByRange(w0){const k0=dk(w0),end=new Date(w0);end.setDate(end.getDate()+7);const r={},add=(key,f)=>f(r[key]=r[key]||{sec:0,days:{},n:0});
+  S.sessions.forEach(x=>{spans(x).forEach(([k,sec])=>{if(k>=k0&&k<dk(end))[x.subj,'*'].forEach(key=>add(key,o=>{o.sec+=sec;o.days[k]=(o.days[k]||0)+sec}))});
+    if(x.ts>=w0.getTime()&&x.ts<end.getTime())[x.subj,'*'].forEach(key=>add(key,o=>{o.n+=x.n||0}))});return r}
+function weekBy(){return weekByRange(mon())}
 function goalsUI(){
   if(!S.goals.length)return'<div class="empty">Chưa có mục tiêu. Ví dụ: "Đạt 8 điểm Hóa" kèm nhiệm vụ "học 8 giờ mỗi tuần".</div>';
-  const wb=weekBy(),shown=goalsShowAll?S.goals:S.goals.slice(0,3);
+  const thisMonday=mon(),prevMonday=new Date(thisMonday);prevMonday.setDate(prevMonday.getDate()-7);
+  const prevKey=dk(prevMonday),prevEnd=new Date(thisMonday);prevEnd.setDate(prevEnd.getDate()-1);
+  const dateRange=d=>d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'});
+  const prevWB=weekByRange(prevMonday),wb=weekBy(),shown=goalsShowAll?S.goals:S.goals.slice(0,3);
+  const previousSummary=S.goals.map(g=>{
+    const d=prevWB[g.subj||'*']||{sec:0,days:{},n:0};
+    const items=(g.tasks||[]).map(t=>{
+      if(t.t==='check'){
+        const done=!!(t.doneWeeks&&t.doneWeeks[prevKey]);
+        const label=esc(t.txt||'Việc cần làm');
+        return {ok:done,unknown:!done&&!t.doneWeeks,html:`<div class="sub"><span>${label}</span><b>${done?'Hoàn thành ✓':(t.doneWeeks?'Chưa hoàn thành':'Chưa có dữ liệu lịch sử')}</b></div>`};
+      }
+      let cur=0,label='';
+      if(t.t==='hours'){cur=d.sec/3600;label=`${cur.toFixed(1)}/${t.v} giờ học`}
+      else if(t.t==='days'){cur=Object.values(d.days).filter(v=>v>=(S.minD||15)*60).length;label=`${cur}/${t.v} ngày học đủ`}
+      else {cur=d.n;label=`${cur}/${t.v} bài làm`}
+      const ok=cur>=t.v;
+      return {ok,unknown:false,html:`<div class="sub"><span>${label}</span><b>${ok?'Hoàn thành ✓':'Chưa đạt'}</b></div><div class="bar"><i style="width:${Math.min(cur/Math.max(1,t.v),1)*100}%;background:${ok?'var(--ac)':'var(--mut)'}"></i></div>`};
+    });
+    const known=items.filter(x=>!x.unknown),complete=known.filter(x=>x.ok).length,unknown=items.some(x=>x.unknown);
+    const status=items.length===0?'Chưa có nhiệm vụ':unknown?'Có nhiệm vụ chưa lưu lịch sử':complete===items.length?'Hoàn thành tất cả':`${complete}/${items.length} nhiệm vụ hoàn thành`;
+    return `<div style="padding:9px 0;border-bottom:1px solid var(--bd)"><div class="sub"><b>${esc(g.title)}</b><b>${status}</b></div>${items.map(x=>x.html).join('')}</div>`;
+  }).join('');
+  const summary=`<div class="card" style="margin-bottom:12px"><b>📊 Tổng kết nhiệm vụ tuần trước</b><small class="s" style="display:block;margin:5px 0 8px">${dateRange(prevMonday)} – ${dateRange(prevEnd)} · Tiến độ được tính từ nhật ký học tập đã lưu.</small>${previousSummary}<small class="s" style="display:block;margin-top:8px">Các nhiệm vụ dạng giờ/ngày/bài được tính từ dữ liệu tuần trước. Nhiệm vụ đánh dấu thủ công chỉ có lịch sử từ lúc bật ghi nhận trở đi.</small></div>`;
   const cards=shown.map(g=>{
     const d=wb[g.subj||'*']||{sec:0,days:{},n:0},sj=g.subj&&SUBJ[g.subj];
     const rows=g.tasks.map((t,i)=>{
@@ -338,7 +362,7 @@ function goalsUI(){
     return`<div class="goal"><div class="gh"><b>${esc(g.title)}</b><span><button class="x" onclick="openGoal('${g.id}')">Sửa</button><button class="x" onclick="delGoal('${g.id}')">Xoá</button></span></div><small class="s">${sj?esc(sj.n):'Tất cả môn'}${due}</small>${rows}</div>`
   }).join('');
   const toggle=S.goals.length>3?`<button class="btn g goals-toggle" onclick="toggleGoals()">${goalsShowAll?'Thu gọn mục tiêu':'Xem tất cả '+S.goals.length+' mục tiêu'}</button>`:'';
-  return cards+toggle;
+  return summary+cards+toggle;
 }
 function toggleGoals(){goalsShowAll=!goalsShowAll;render()}
 function goalForm(){if(!GF)return'';
@@ -355,14 +379,14 @@ function saveGoal(){const ts=GF.tasks.filter(t=>t.t=='check'?(t.txt||'').trim():
   if(GF.id){S.goals=S.goals.map(y=>y.id===GF.id?g:y)}else S.goals.push(g);
   GF=null;S.su=Date.now();save();render()}
 function delGoal(id){if(!confirm('Xoá mục tiêu này?'))return;S.goals=S.goals.filter(y=>String(y.id)!==String(id));S.su=Date.now();save();render()}
-function chk(id,i,v){const g=S.goals.find(y=>String(y.id)===String(id));if(!g)return;g.tasks[i].done=v;S.su=Date.now();save();render()}
+function chk(id,i,v){const g=S.goals.find(y=>String(y.id)===String(id));if(!g)return;const t=g.tasks[i];t.done=v;if(v){t.doneWeeks=t.doneWeeks||{};t.doneWeeks[dk(mon())]=true}S.su=Date.now();save();render()}
 // ===== 8. ĐỒNG BỘ ĐÁM MÂY + CHẠY ĐUA =====
 // Cần cấu hình Firebase (xem HUONG-DAN-DONG-BO.md). Chưa cấu hình thì phần này không làm gì và phần mềm vẫn chạy bình thường.
 // cloud.js cung cấp đối tượng window.cloud; ở đây chỉ dùng các hàm: onAuth, signIn, signOut, watchMine, setMine, setMember, delMember, watchRoom.
 const sig=o=>(o.sessions||[]).map(x=>x.id+':'+(x.m||0)).sort().join()+'|'+Object.keys(o.del||{}).sort().join()+'|'+Object.keys(o.ach||{}).sort().join()+'|'+(o.su||0);
 const mon=()=>{const w=new Date();w.setHours(0,0,0,0);w.setDate(w.getDate()-((w.getDay()+6)%7));return w};
 // XP của một buổi học (dùng chung cho tổng XP và XP tuần)
-function sxp(x){const m=Math.floor(x.dur/60),cap=Math.max(10,m*2),n=Math.min(x.n||0,cap),c=Math.min(x.c||0,n);return Math.round(m+2*n+c)}
+function sxp(x){const m=Math.floor(x.dur/60),cap=Math.max(10,m*2),n=Math.min(x.n||0,cap),c=Math.min(x.c||0,n);return Math.round((m+2*n+c)*(x.man?.5:1))}
 // XP tuần = toàn bộ XP từ các buổi học trong tuần + 30 XP cho mỗi ngày học đủ số phút tối thiểu; không giới hạn XP theo ngày
 function weekFor(w0,s){const end=new Date(w0);end.setDate(end.getDate()+7);const per={};let mins=0,hasData=false;
   S.sessions.forEach(x=>{if(x.ts>=w0.getTime()&&x.ts<end.getTime()){const k=dk(x.ts);per[k]=(per[k]||0)+sxp(x);mins+=x.dur/60;hasData=true}});

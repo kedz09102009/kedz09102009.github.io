@@ -1,17 +1,11 @@
-BAN SUA: NHAP THU CONG NHAN DAY DU XP
+BAN SUA V16 - TONG KET NHIEM VU TUAN TRUOC
 
-Noi dung:
-- app.js: bo he so 0.5 khi tinh XP trong nhat ky cho buoi hoc nhap tay.
-- cloudflare/worker.js: tinh XP tiem nang cua ban ghi nhap tay theo cung cong thuc XP nhu buoi hoc bang dong ho.
+1. Sao luu app.js dang dung.
+2. Thay app.js o thu muc goc du an bang app.js trong goi nay.
+3. Day thay doi len GitHub Pages va tai lai trang.
 
-CACH CAP NHAT
-1. Sao luu app.js hien tai va cloudflare/worker.js hien tai.
-2. Thay app.js o thu muc goc GitHub bang app.js trong goi nay.
-3. Thay cloudflare/worker.js trong thu muc cloudflare bang cloudflare/worker.js trong goi nay.
-4. Mo CMD, chuyen vao thu muc cloudflare cua du an va chay: npx wrangler deploy
-5. Cho GitHub Pages cap nhat, mo lai trang va bam Ctrl+F5 neu can.
-
-LUU Y
-- Ban ghi nhap tay tren may chu van o trang thai cho quan tri vien xac minh; thay doi nay lam XP tiem nang duoc tinh day du, khong tu dong bo qua buoc xac minh.
-- Cac ban ghi nhap tay da gui truoc khi cap nhat co the van giu muc XP tiem nang cu da luu. Thay doi nay ap dung cho ban ghi gui sau khi Worker moi duoc deploy.
-- Khong can chay migration D1 va khong can xoa hay nhap lai du lieu Firebase.
+Tinh nang:
+- Them muc Tong ket nhiem vu tuan truoc trong khu vuc Muc tieu va nhiem vu.
+- Nhiem vu gio hoc/ngay hoc/bai lam duoc tinh tu cac buoi hoc cua thu Hai den Chu Nhat tuan truoc.
+- Nhiem vu danh dau thu cong se bat dau luu lich su tu ban nay tro di. Cac tuan truoc khong co lich su se hien ro la chua co du lieu, khong tu dong ket luan chua hoan thanh.
+- Khong xoa hay sua du lieu buoi hoc.
